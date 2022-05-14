@@ -1,9 +1,25 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "OnlineSessionSettings.h"
+#include "Engine/DataTable.h"
 #include "Interfaces/OnlineSessionInterface.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "MultiplayerSessionsSubsystem.generated.h"
+
+USTRUCT(BlueprintType)
+struct FMapInformation : public FTableRowBase
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadOnly, EditAnywhere)
+	TSoftObjectPtr<UWorld> Level;
+	UPROPERTY(BlueprintReadOnly, EditAnywhere)
+	FName DisplayName;
+	UPROPERTY(BlueprintReadOnly, EditAnywhere)
+	FString Description;
+	UPROPERTY(BlueprintReadOnly, EditAnywhere)
+	UTexture2D* Image;
+};
 
 USTRUCT(BlueprintType)
 struct FSaiyoraSession
