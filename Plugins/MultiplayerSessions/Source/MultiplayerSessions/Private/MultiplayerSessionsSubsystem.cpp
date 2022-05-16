@@ -27,22 +27,9 @@ UMultiplayerSessionsSubsystem::UMultiplayerSessionsSubsystem():
 	FindSessionsDelegate(FOnFindSessionsCompleteDelegate::CreateUObject(this, &ThisClass::OnFindSessions)),
 	JoinSessionDelegate(FOnJoinSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnJoinSession)),
 	DestroySessionDelegate(FOnDestroySessionCompleteDelegate::CreateUObject(this, &ThisClass::OnDestroySession))
-	//StartSessionCallback(FOnStartSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnStartSession))
 {
 	
 }
-
-/*IOnlineSessionPtr UMultiplayerSessionsSubsystem::GetSessionInterface()
-{
-	if (!SessionInterface.IsValid())
-	{
-		if (const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld()))
-		{
-			SessionInterface = Subsystem->GetSessionInterface();
-		}
-	}
-	return SessionInterface;
-}*/
 
 void UMultiplayerSessionsSubsystem::CreateSession(const bool bPrivate, const int32 NumPlayers, const FString& ServerName, const FString& MapName, const FOnCreateSessionCallback& Callback)
 {
@@ -106,7 +93,7 @@ void UMultiplayerSessionsSubsystem::CreateSession(const bool bPrivate, const int
 		LastSessionSettings.bIsLANMatch = Subsystem->GetSubsystemName() == FName(TEXT("NULL"));
 		LastSessionSettings.NumPublicConnections = bPrivate ? 0 : NumPlayers;
 		LastSessionSettings.NumPrivateConnections = bPrivate ? NumPlayers : 0;
-		LastSessionSettings.bAllowJoinInProgress = true;
+		LastSessionSettings.bAllowJoinInProgress = false;
 		LastSessionSettings.bAllowJoinViaPresence = true;
 		LastSessionSettings.bShouldAdvertise = !bPrivate;
 		LastSessionSettings.bUsesPresence = true;
@@ -392,5 +379,60 @@ void UMultiplayerSessionsSubsystem::PostDestroyCreateSession(const bool bWasSucc
 				CreateSessionCallback.Execute(false, TEXT("Session interface returned false from destroying existing session, cannot create session."));
 			}
 		}
+	}
+}
+
+bool UMultiplayerSessionsSubsystem::StartSession()
+{
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	if (!Subsystem)
+	{
+		return false;
+	}
+	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	if (!SessionInterface.IsValid())
+	{
+		return false;
+	}
+	return SessionInterface->StartSession(NAME_GameSession);
+}
+
+FString UMultiplayerSessionsSubsystem::GetSessionState() const
+{
+	IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	if (!Subsystem)
+	{
+		return FString(TEXT("Invalid subsystem."));
+	}
+	IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	if (!SessionInterface.IsValid())
+	{
+		return FString(TEXT("Invalid session interface"));
+	}
+	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(NAME_GameSession);
+	if (!Session)
+	{
+		return FString(TEXT("No valid session."));
+	}
+	switch (Session->SessionState)
+	{
+	case EOnlineSessionState::NoSession :
+		return FString(TEXT("NoSession"));
+	case EOnlineSessionState::Creating :
+		return FString(TEXT("Creating"));
+	case EOnlineSessionState::Pending :
+		return FString(TEXT("Pending"));
+	case EOnlineSessionState::Starting :
+		return FString(TEXT("Starting"));
+	case EOnlineSessionState::InProgress :
+		return FString(TEXT("InProgress"));
+	case EOnlineSessionState::Ending :
+		return FString(TEXT("Ending"));
+	case EOnlineSessionState::Ended :
+		return FString(TEXT("Ended"));
+	case EOnlineSessionState::Destroying :
+		return FString(TEXT("Destroying"));
+	default:
+		return FString(TEXT("defaulted"));
 	}
 }

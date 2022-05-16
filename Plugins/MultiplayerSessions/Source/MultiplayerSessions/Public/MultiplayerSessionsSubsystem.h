@@ -46,8 +46,6 @@ DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnCreateSessionCallback, const bool, bWasSuc
 DECLARE_DYNAMIC_DELEGATE_ThreeParams(FOnFindSessionsCallback, const bool, bWasSuccessful, const FString&, Error, const TArray<FSaiyoraSession>&, Results);
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnJoinSessionCallback, const bool, bWasSuccessful, const FString&, Error);
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnDestroySessionCallback, const bool, bWasSuccessful, const FString&, Error);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDestroySessionCompleteCustom, bool, bWasSuccessful);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStartSessionCompleteCustom, bool, bWasSuccessful);
 
 UCLASS()
 class MULTIPLAYERSESSIONS_API UMultiplayerSessionsSubsystem : public UGameInstanceSubsystem
@@ -66,6 +64,11 @@ public:
 	void JoinSession(const FSaiyoraSession& Session, const FOnJoinSessionCallback& Callback);
 	UFUNCTION(BlueprintCallable)
 	void DestroySession(const FOnDestroySessionCallback& Callback);
+	UFUNCTION(BlueprintCallable)
+	bool StartSession();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	FString GetSessionState() const;
 	
 private:
 
@@ -101,8 +104,4 @@ private:
 	void OnDestroySession(FName SessionName, bool bWasSuccessful);
 	FOnDestroySessionCallback DestroySessionCallback;
 	bool bDestroyingSession = false;
-	
-	/*FOnStartSessionCompleteDelegate StartSessionCallback;
-	FDelegateHandle StartSessionHandle;
-	void OnStartSession(FName SessionName, bool bWasSuccessful);*/
 };

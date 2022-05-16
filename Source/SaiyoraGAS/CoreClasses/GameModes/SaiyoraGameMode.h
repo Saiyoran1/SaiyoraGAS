@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "GameFramework/GameMode.h"
 #include "SaiyoraGameMode.generated.h"
 
@@ -11,5 +12,20 @@ class SAIYORAGAS_API ASaiyoraGameMode : public AGameMode
 public:
 	
 	ASaiyoraGameMode();
+	virtual void HandleMatchHasStarted() override;
+	void PreventFurtherJoining();
+
+protected:
 	
+	UPROPERTY(EditDefaultsOnly)
+	int32 KillCountRequirement = 0;
+	UPROPERTY(EditDefaultsOnly, meta = (Categories = "Boss"))
+	TSet<FGameplayTag> BossKillTags;
+
+private:
+
+	UPROPERTY()
+	class ASaiyoraGameState* GameStateRef;
+	UPROPERTY()
+	TArray<class ASaiyoraPlayerCharacter*> PlayersReadyToStart;
 };
