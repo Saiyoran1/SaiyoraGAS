@@ -11,4 +11,6 @@ class SAIYORAGAS_API ASaiyoraPlayerController : public APlayerController
 public:
 
 	virtual void AcknowledgePossession(APawn* P) override;
+
+	virtual void BeginPlay() override;
 };

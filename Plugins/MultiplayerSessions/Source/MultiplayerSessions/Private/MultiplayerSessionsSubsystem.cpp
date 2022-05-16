@@ -1,13 +1,13 @@
 #include "MultiplayerSessionsSubsystem.h"
 #include "OnlineSubsystem.h"
+#include "OnlineSubsystemUtils.h"
+#include "GameFramework/PlayerState.h"
 
 FSaiyoraSession::FSaiyoraSession()
 {
 	HostName = "";
 	TotalSlots = 0;
 	OpenSlots = 0;
-	MatchType = "";
-	bPrivate = false;
 	ServerName = "";
 	MapName = "";
 }
@@ -18,10 +18,8 @@ FSaiyoraSession::FSaiyoraSession(const FOnlineSessionSearchResult& SearchResult)
 	HostName = SearchResult.Session.OwningUserName;
 	TotalSlots = SearchResult.Session.SessionSettings.NumPublicConnections;
 	OpenSlots = SearchResult.Session.NumOpenPublicConnections;
-	SearchResult.Session.SessionSettings.Get(FName(TEXT("MatchType")), MatchType);
 	SearchResult.Session.SessionSettings.Get(FName(TEXT("ServerName")), ServerName);
-	SearchResult.Session.SessionSettings.Get(FName(TEXT("MapName")), MapName);
-	bPrivate = !SearchResult.Session.SessionSettings.bShouldAdvertise;
+	SearchResult.Session.SessionSettings.Get(SETTING_MAPNAME, MapName);
 }
 
 UMultiplayerSessionsSubsystem::UMultiplayerSessionsSubsystem():
@@ -34,20 +32,19 @@ UMultiplayerSessionsSubsystem::UMultiplayerSessionsSubsystem():
 	
 }
 
-IOnlineSessionPtr UMultiplayerSessionsSubsystem::GetSessionInterface()
+/*IOnlineSessionPtr UMultiplayerSessionsSubsystem::GetSessionInterface()
 {
 	if (!SessionInterface.IsValid())
 	{
-		if (const IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get())
+		if (const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld()))
 		{
 			SessionInterface = Subsystem->GetSessionInterface();
 		}
 	}
 	return SessionInterface;
-}
+}*/
 
-void UMultiplayerSessionsSubsystem::CreateSession(const bool bPrivate, const int32 NumPlayers, const FString& ServerName, const FString& MapName,
-	const FString& MatchType, const FOnCreateSessionCallback& Callback)
+void UMultiplayerSessionsSubsystem::CreateSession(const bool bPrivate, const int32 NumPlayers, const FString& ServerName, const FString& MapName, const FOnCreateSessionCallback& Callback)
 {
 	if (!Callback.IsBound())
 	{
@@ -77,70 +74,62 @@ void UMultiplayerSessionsSubsystem::CreateSession(const bool bPrivate, const int
 		Callback.Execute(false, TEXT("Currently destroying session, cannot create session"));
 		return;
 	}
-	if (!GetSessionInterface().IsValid())
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	if (!Subsystem)
+	{
+		Callback.Execute(false, TEXT("Invalid online subsystem, cannot create session."));
+		return;
+	}
+	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	if (!SessionInterface.IsValid())
 	{
 		Callback.Execute(false, TEXT("Invalid session interface, cannot create session."));
 		return;
 	}
 	bCreatingSession = true;
 	CreateSessionHandle = SessionInterface->AddOnCreateSessionCompleteDelegate_Handle(CreateSessionDelegate);
-	CreateSessionConnectionNumber = NumPlayers;
-	bCreateSessionPrivate = bPrivate;
-	//TODO: Limit server name length, validation?
-	CreateSessionServerName = ServerName;
-	CreateSessionMatchType = MatchType;
-	CreateSessionMapName = MapName;
 	CreateSessionCallback = Callback;
-	if (SessionInterface->GetNamedSession(NAME_GameSession) != nullptr)
+	if (SessionInterface->GetNamedSession(NAME_GameSession))
 	{
 		bWaitingOnDestroyForRemake = true;
+		CreateSessionConnectionNumber = NumPlayers;
+		CreateSessionServerName = ServerName;
+		CreateSessionMapName = MapName;
+		bCreateSessionPrivate = bPrivate;
 		FOnDestroySessionCallback PostDestroy;
 		PostDestroy.BindDynamic(this, &ThisClass::PostDestroyCreateSession);
 		DestroySession(PostDestroy);
 	}
 	else
 	{
-		InternalCreateSession();
+		LastSessionSettings = FOnlineSessionSettings();
+		LastSessionSettings.bIsLANMatch = Subsystem->GetSubsystemName() == FName(TEXT("NULL"));
+		LastSessionSettings.NumPublicConnections = bPrivate ? 0 : NumPlayers;
+		LastSessionSettings.NumPrivateConnections = bPrivate ? NumPlayers : 0;
+		LastSessionSettings.bAllowJoinInProgress = true;
+		LastSessionSettings.bAllowJoinViaPresence = true;
+		LastSessionSettings.bShouldAdvertise = !bPrivate;
+		LastSessionSettings.bUsesPresence = true;
+		LastSessionSettings.bUseLobbiesIfAvailable = true;
+		LastSessionSettings.Set(SETTING_GAMEMODE, FString(TEXT("Saiyora")), EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
+		LastSessionSettings.Set(FName(TEXT("ServerName")), ServerName, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
+		LastSessionSettings.Set(SETTING_MAPNAME, MapName, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
+		const FUniqueNetIdPtr NetID = GetWorld()->GetFirstPlayerController()->PlayerState->GetUniqueId().GetUniqueNetId();
+		SessionInterface->CreateSession(*NetID, NAME_GameSession, LastSessionSettings);
 	}
-}
-
-void UMultiplayerSessionsSubsystem::InternalCreateSession()
-{
-	LastSessionSettings = MakeShareable(new FOnlineSessionSettings());
-	LastSessionSettings->bIsLANMatch = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL";
-	LastSessionSettings->NumPublicConnections = bCreateSessionPrivate ? 0 : CreateSessionConnectionNumber;
-	LastSessionSettings->NumPrivateConnections = bCreateSessionPrivate ? CreateSessionConnectionNumber : 0;
-	LastSessionSettings->bAllowJoinInProgress = true;
-	LastSessionSettings->bAllowJoinViaPresence = true;
-	LastSessionSettings->bShouldAdvertise = !bCreateSessionPrivate;
-	LastSessionSettings->bUsesPresence = true;
-	LastSessionSettings->bUseLobbiesIfAvailable = true;
-	LastSessionSettings->BuildUniqueId = 1;
-	if (CreateSessionMatchType != "")
-	{
-		LastSessionSettings->Set(FName(TEXT("MatchType")), CreateSessionMatchType, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
-	}
-	if (CreateSessionServerName != "")
-	{
-		LastSessionSettings->Set(FName(TEXT("ServerName")), CreateSessionServerName, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
-	}
-	if (CreateSessionMapName != "")
-	{
-		LastSessionSettings->Set(FName(TEXT("MapName")), CreateSessionMapName, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
-	}
-	CreateSessionConnectionNumber = 0;
-	CreateSessionMatchType = "";
-	bCreateSessionPrivate = false;
-	CreateSessionServerName = "";
-	SessionInterface->CreateSession(*GetWorld()->GetFirstLocalPlayerFromController()->GetPreferredUniqueNetId(), NAME_GameSession, *LastSessionSettings);
 }
 
 void UMultiplayerSessionsSubsystem::OnCreateSession(FName SessionName, bool bWasSuccessful)
 {
 	bCreatingSession = false;
-	if (SessionInterface)
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	if (Subsystem)
 	{
-		SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionHandle);
+		const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+		if (SessionInterface.IsValid())
+		{
+			SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionHandle);
+		}
 	}
 	if (CreateSessionCallback.IsBound())
 	{
@@ -184,7 +173,14 @@ void UMultiplayerSessionsSubsystem::FindSessions(const int32 MaxSearchResults, c
 		Callback.Execute(false, TEXT("Currently destroying session, cannot find sessions."), TArray<FSaiyoraSession>());
 		return;
 	}
-	if (!GetSessionInterface().IsValid())
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	if (!Subsystem)
+	{
+		Callback.Execute(false, TEXT("Invalid online subsystem, cannot find sessions."), TArray<FSaiyoraSession>());
+		return;
+	}
+	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	if (!SessionInterface.IsValid())
 	{
 		Callback.Execute(false, TEXT("Invalid session interface, cannot find sessions."), TArray<FSaiyoraSession>());
 		return;
@@ -194,17 +190,23 @@ void UMultiplayerSessionsSubsystem::FindSessions(const int32 MaxSearchResults, c
 	FindSessionsHandle = SessionInterface->AddOnFindSessionsCompleteDelegate_Handle(FindSessionsDelegate);
 	LastSessionSearch = MakeShareable(new FOnlineSessionSearch());
 	LastSessionSearch->MaxSearchResults = MaxSearchResults;
-	LastSessionSearch->bIsLanQuery = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL";
+	LastSessionSearch->bIsLanQuery = IOnlineSubsystem::Get()->GetSubsystemName() == FName(TEXT("NULL"));
 	LastSessionSearch->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
-	SessionInterface->FindSessions(*GetWorld()->GetFirstLocalPlayerFromController()->GetPreferredUniqueNetId(), LastSessionSearch.ToSharedRef());
+	const FUniqueNetIdPtr NetID = GetWorld()->GetFirstPlayerController()->PlayerState->GetUniqueId().GetUniqueNetId();
+	SessionInterface->FindSessions(*NetID, LastSessionSearch.ToSharedRef());
 }
 
 void UMultiplayerSessionsSubsystem::OnFindSessions(bool bWasSuccessful)
 {
 	bFindingSessions = false;
-	if (SessionInterface)
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	if (Subsystem)
 	{
-		SessionInterface->ClearOnFindSessionsCompleteDelegate_Handle(FindSessionsHandle);
+		const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+		if (SessionInterface.IsValid())
+		{
+			SessionInterface->ClearOnFindSessionsCompleteDelegate_Handle(FindSessionsHandle);
+		}
 	}
 	if (FindSessionsCallback.IsBound())
 	{
@@ -220,7 +222,6 @@ void UMultiplayerSessionsSubsystem::OnFindSessions(bool bWasSuccessful)
 			}
 		}
 		FindSessionsCallback.Execute(bWasSuccessful, bWasSuccessful ? TEXT("Successfully found sessions.") : TEXT("Session interface returned false when finding sessions."), SessionResults);
-		FindSessionsCallback.Clear();
 	}
 }
 
@@ -254,26 +255,40 @@ void UMultiplayerSessionsSubsystem::JoinSession(const FSaiyoraSession& Session, 
 		Callback.Execute(false, TEXT("Currently destroying session, cannot join session."));
 		return;
 	}
-	if (!GetSessionInterface().IsValid())
-	{
-		Callback.Execute(false, TEXT("Invalid session interface, cannot join session."));
-		return;
-	}
 	if (!Session.NativeResult.IsValid())
 	{
 		Callback.Execute(false, TEXT("Invalid session result, cannot join session."));
 		return;
 	}
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	if (!Subsystem)
+	{
+		Callback.Execute(false, TEXT("Invalid online subsystem, cannot join session."));
+		return;
+	}
+	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	if (!SessionInterface.IsValid())
+	{
+		Callback.Execute(false, TEXT("Invalid session interface, cannot join session."));
+		return;
+	}
 	bJoiningSession = true;
 	JoinSessionCallback = Callback;
 	JoinSessionHandle = SessionInterface->AddOnJoinSessionCompleteDelegate_Handle(JoinSessionDelegate);
-	SessionInterface->JoinSession(*GetWorld()->GetFirstLocalPlayerFromController()->GetPreferredUniqueNetId(), NAME_GameSession, Session.NativeResult);
+	const FUniqueNetIdPtr NetID = GetWorld()->GetFirstPlayerController()->PlayerState->GetUniqueId().GetUniqueNetId();
+	SessionInterface->JoinSession(*NetID, NAME_GameSession, Session.NativeResult);
 }
 
 void UMultiplayerSessionsSubsystem::OnJoinSession(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
 {
 	bJoiningSession = false;
-	if (SessionInterface)
+	IOnlineSessionPtr SessionInterface = nullptr;
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	if (Subsystem)
+	{
+		SessionInterface = Subsystem->GetSessionInterface();
+	}
+	if (SessionInterface.IsValid())
 	{
 		SessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(JoinSessionHandle);
 	}
@@ -281,9 +296,8 @@ void UMultiplayerSessionsSubsystem::OnJoinSession(FName SessionName, EOnJoinSess
 	if (JoinSessionCallback.IsBound())
 	{
 		JoinSessionCallback.Execute(bSuccess, bSuccess ? TEXT("Successfully joined session.") : TEXT("Session interface returned false when joining session."));
-		JoinSessionCallback.Clear();
 	}
-	if (bSuccess)
+	if (bSuccess && SessionInterface.IsValid())
 	{
 		FString ConnectString;
 		SessionInterface->GetResolvedConnectString(NAME_GameSession, ConnectString);
@@ -321,7 +335,14 @@ void UMultiplayerSessionsSubsystem::DestroySession(const FOnDestroySessionCallba
 		Callback.Execute(false, TEXT("Currently destroying session, cannot destroy session again."));
 		return;
 	}
-	if (!GetSessionInterface().IsValid())
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	if (!Subsystem)
+	{
+		Callback.Execute(false, TEXT("Invalid online subsystem, cannot destroy session."));
+		return;
+	}
+	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	if (!SessionInterface.IsValid())
 	{
 		Callback.Execute(false, TEXT("Invalid session interface, cannot destroy session."));
 		return;
@@ -335,14 +356,18 @@ void UMultiplayerSessionsSubsystem::DestroySession(const FOnDestroySessionCallba
 void UMultiplayerSessionsSubsystem::OnDestroySession(FName SessionName, bool bWasSuccessful)
 {
 	bDestroyingSession = false;
-	if (SessionInterface)
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	if (Subsystem)
 	{
-		SessionInterface->ClearOnDestroySessionCompleteDelegate_Handle(DestroySessionHandle);
+		const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+		if (SessionInterface.IsValid())
+		{
+			SessionInterface->ClearOnDestroySessionCompleteDelegate_Handle(DestroySessionHandle);
+		}
 	}
 	if (DestroySessionCallback.IsBound())
 	{
 		DestroySessionCallback.Execute(bWasSuccessful, bWasSuccessful ? TEXT("Successfully destroyed session.") : TEXT("Session interface returned false from destroying session."));
-		DestroySessionCallback.Clear();
 	}
 }
 
@@ -357,7 +382,7 @@ void UMultiplayerSessionsSubsystem::PostDestroyCreateSession(const bool bWasSucc
 			{
 				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Destroyed current session to create new session."));
 			}
-			InternalCreateSession();
+			CreateSession(bCreateSessionPrivate, CreateSessionConnectionNumber, CreateSessionServerName, CreateSessionMapName, CreateSessionCallback);
 		}
 		else
 		{
@@ -365,19 +390,7 @@ void UMultiplayerSessionsSubsystem::PostDestroyCreateSession(const bool bWasSucc
 			if (CreateSessionCallback.IsBound())
 			{
 				CreateSessionCallback.Execute(false, TEXT("Session interface returned false from destroying existing session, cannot create session."));
-				CreateSessionCallback.Clear();
 			}
 		}
 	}
 }
-
-
-/*void UMultiplayerSessionsSubsystem::StartSession()
-{
-	
-}*/
-
-/*void UMultiplayerSessionsSubsystem::OnStartSession(FName SessionName, bool bWasSuccessful)
-{
-	
-}*/

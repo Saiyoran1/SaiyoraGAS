@@ -18,7 +18,7 @@ struct FMapInformation : public FTableRowBase
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	FString Description;
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
-	UTexture2D* Image;
+	UTexture2D* Image = nullptr;
 };
 
 USTRUCT(BlueprintType)
@@ -37,13 +37,9 @@ struct FSaiyoraSession
 	UPROPERTY(BlueprintReadOnly)
 	FString MapName;
 	UPROPERTY(BlueprintReadOnly)
-	bool bPrivate;
-	UPROPERTY(BlueprintReadOnly)
 	int32 TotalSlots;
 	UPROPERTY(BlueprintReadOnly)
 	int32 OpenSlots;
-	UPROPERTY(BlueprintReadOnly)
-	FString MatchType;
 };
 
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnCreateSessionCallback, const bool, bWasSuccessful, const FString&, Error);
@@ -63,36 +59,29 @@ public:
 	UMultiplayerSessionsSubsystem();
 
 	UFUNCTION(BlueprintCallable)
-	void CreateSession(const bool bPrivate, const int32 NumPlayers, const FString& ServerName, const FString& MapName, const FString& MatchType, const FOnCreateSessionCallback& Callback);
+	void CreateSession(const bool bPrivate, const int32 NumPlayers, const FString& ServerName, const FString& MapName, const FOnCreateSessionCallback& Callback);
 	UFUNCTION(BlueprintCallable)
 	void FindSessions(const int32 MaxSearchResults, const FOnFindSessionsCallback& Callback);
 	UFUNCTION(BlueprintCallable)
 	void JoinSession(const FSaiyoraSession& Session, const FOnJoinSessionCallback& Callback);
 	UFUNCTION(BlueprintCallable)
 	void DestroySession(const FOnDestroySessionCallback& Callback);
-	/*void StartSession();
-	FOnStartSessionCompleteCustom OnStartSessionComplete;*/
 	
 private:
 
-	IOnlineSessionPtr GetSessionInterface();
-	IOnlineSessionPtr SessionInterface;
-
-	TSharedPtr<FOnlineSessionSettings> LastSessionSettings;
+	FOnlineSessionSettings LastSessionSettings;
 	FOnCreateSessionCompleteDelegate CreateSessionDelegate;
 	FDelegateHandle CreateSessionHandle;
 	void OnCreateSession(FName SessionName, bool bWasSuccessful);
 	UFUNCTION()
 	void PostDestroyCreateSession(const bool bWasSuccessful, const FString& Error);
 	FOnCreateSessionCallback CreateSessionCallback;
-	bool bCreateSessionPrivate = false;
 	int32 CreateSessionConnectionNumber = 1;
 	FString CreateSessionServerName;
-	FString CreateSessionMatchType;
 	FString CreateSessionMapName;
+	bool bCreateSessionPrivate = false;
 	bool bCreatingSession = false;
 	bool bWaitingOnDestroyForRemake = false;
-	void InternalCreateSession();
 
 	TSharedPtr<FOnlineSessionSearch> LastSessionSearch;
 	FOnFindSessionsCompleteDelegate FindSessionsDelegate;

@@ -10,3 +10,10 @@ void ASaiyoraPlayerController::AcknowledgePossession(APawn* P)
 		PC->GetAbilityComponent()->InitAbilityActorInfo(PC, PC);
 	}
 }
+
+void ASaiyoraPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+	SetInputMode(FInputModeGameOnly());
+	SetShowMouseCursor(false);
+}
