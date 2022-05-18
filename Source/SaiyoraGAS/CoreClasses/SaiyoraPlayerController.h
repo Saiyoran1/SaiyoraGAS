@@ -10,7 +10,19 @@ class SAIYORAGAS_API ASaiyoraPlayerController : public APlayerController
 
 public:
 
+	virtual void BeginPlay() override;
 	virtual void AcknowledgePossession(APawn* P) override;
 
-	virtual void BeginPlay() override;
+private:
+
+	UPROPERTY()
+	class ASaiyoraGameState* GameStateRef;
+	FTimerHandle PingHandle;
+	FTimerDelegate PingDelegate;
+	void SendPing();
+	
+	UFUNCTION(Server, Reliable)
+	void ServerSendClientTime(const float ClientTime);
+	UFUNCTION(Client, Reliable)
+	void ClientSendServerTime(const float ServerTime, const float ClientRequestTime);
 };

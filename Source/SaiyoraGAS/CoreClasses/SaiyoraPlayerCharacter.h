@@ -15,6 +15,8 @@ public:
 	ASaiyoraPlayerCharacter();
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void PossessedBy(AController* NewController) override;
+	virtual void OnRep_PlayerState() override;
+	virtual void OnRep_Controller() override;
 
 	UFUNCTION(BlueprintPure, Category = "Camera")
 	class USpringArmComponent* GetSpringArm() { return SpringArm; }
@@ -24,6 +26,11 @@ public:
 	USaiyoraAbilityComponent* GetAbilityComponent() { return AbilityComponent; }
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilityComponent; }
+
+protected:
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void CreateUserInterface();
 
 private:
 
@@ -44,4 +51,7 @@ private:
 	void JumpInput();
 	UFUNCTION()
 	void ReloadInput();
+
+	void InitUserInterface();
+	bool bUserInterfaceInitialized = false;
 };

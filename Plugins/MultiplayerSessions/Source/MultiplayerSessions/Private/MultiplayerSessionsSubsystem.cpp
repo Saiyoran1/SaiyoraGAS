@@ -93,7 +93,7 @@ void UMultiplayerSessionsSubsystem::CreateSession(const bool bPrivate, const int
 		LastSessionSettings.bIsLANMatch = Subsystem->GetSubsystemName() == FName(TEXT("NULL"));
 		LastSessionSettings.NumPublicConnections = bPrivate ? 0 : NumPlayers;
 		LastSessionSettings.NumPrivateConnections = bPrivate ? NumPlayers : 0;
-		LastSessionSettings.bAllowJoinInProgress = false;
+		LastSessionSettings.bAllowJoinInProgress = true;
 		LastSessionSettings.bAllowJoinViaPresence = true;
 		LastSessionSettings.bShouldAdvertise = !bPrivate;
 		LastSessionSettings.bUsesPresence = true;

@@ -25,7 +25,11 @@ class SAIYORAGAS_API ASaiyoraGameState : public AGameState
 
 public:
 
+	ASaiyoraGameState();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void Tick(float DeltaSeconds) override;
+	virtual float GetServerWorldTimeSeconds() const override;
+	void ReportAdjustedServerTime(const float AdjustedTime);
 
 	void SetDungeonState(const EDungeonState NewState);
 
@@ -45,6 +49,8 @@ public:
 	FOnTimeChanged OnGoalTimeChanged;
 
 private:
+
+	float WorldTime = 0.0f;
 
 	static const float CountdownLength;
 

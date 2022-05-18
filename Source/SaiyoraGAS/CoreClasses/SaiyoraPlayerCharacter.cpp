@@ -32,12 +32,35 @@ void ASaiyoraPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 
 void ASaiyoraPlayerCharacter::PossessedBy(AController* NewController)
 {
+	//Only called on server.
 	Super::PossessedBy(NewController);
 	if (AbilityComponent)
 	{
 		AbilityComponent->InitAbilityActorInfo(this, this);
 	}
 	SetOwner(NewController);
+	if (NewController->IsLocalController())
+	{
+		InitUserInterface();
+	}
+}
+
+void ASaiyoraPlayerCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	if (GetController() && GetController()->IsLocalController())
+	{
+		InitUserInterface();
+	}
+}
+
+void ASaiyoraPlayerCharacter::OnRep_Controller()
+{
+	Super::OnRep_Controller();
+	if (GetPlayerState() && IsLocallyControlled())
+	{
+		InitUserInterface();
+	}
 }
 
 void ASaiyoraPlayerCharacter::MoveCharacterForward(float Value)
@@ -69,4 +92,14 @@ void ASaiyoraPlayerCharacter::JumpInput()
 void ASaiyoraPlayerCharacter::ReloadInput()
 {
 	//TODO: Reload ability.
+}
+
+void ASaiyoraPlayerCharacter::InitUserInterface()
+{
+	if (bUserInterfaceInitialized)
+	{
+		return;
+	}
+	bUserInterfaceInitialized = true;
+	CreateUserInterface();
 }

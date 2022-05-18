@@ -4,6 +4,12 @@
 
 const float ASaiyoraGameState::CountdownLength = 10.0f;
 
+ASaiyoraGameState::ASaiyoraGameState()
+{
+	PrimaryActorTick.bCanEverTick = true;
+	SetActorTickEnabled(true);
+}
+
 void ASaiyoraGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -11,6 +17,22 @@ void ASaiyoraGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(ASaiyoraGameState, StartTime);
 	DOREPLIFETIME(ASaiyoraGameState, GoalTime);
 	DOREPLIFETIME(ASaiyoraGameState, DungeonState);
+}
+
+void ASaiyoraGameState::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	WorldTime += DeltaSeconds;
+}
+
+float ASaiyoraGameState::GetServerWorldTimeSeconds() const
+{
+	return WorldTime;
+}
+
+void ASaiyoraGameState::ReportAdjustedServerTime(const float AdjustedTime)
+{
+	WorldTime = AdjustedTime;
 }
 
 void ASaiyoraGameState::SetDungeonState(const EDungeonState NewState)
