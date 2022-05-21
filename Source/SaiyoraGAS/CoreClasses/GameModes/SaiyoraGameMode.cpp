@@ -17,7 +17,7 @@ void ASaiyoraGameMode::HandleMatchHasStarted()
 {
 	Super::HandleMatchHasStarted();
 	GameStateRef = GetGameState<ASaiyoraGameState>();
-	GameStateRef->SetDungeonState(EDungeonState::WaitingToStart);
+	GameStateRef->InitDungeonState();
 }
 
 void ASaiyoraGameMode::PreventFurtherJoining()

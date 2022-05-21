@@ -1,6 +1,5 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "GameplayTagContainer.h"
 #include "GameFramework/GameMode.h"
 #include "SaiyoraGameMode.generated.h"
 
@@ -14,13 +13,6 @@ public:
 	ASaiyoraGameMode();
 	virtual void HandleMatchHasStarted() override;
 	void PreventFurtherJoining();
-
-protected:
-	
-	UPROPERTY(EditDefaultsOnly)
-	int32 KillCountRequirement = 0;
-	UPROPERTY(EditDefaultsOnly, meta = (Categories = "Boss"))
-	TSet<FGameplayTag> BossKillTags;
 
 private:
 

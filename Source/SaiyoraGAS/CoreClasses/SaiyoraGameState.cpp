@@ -1,8 +1,11 @@
 #include "SaiyoraGameState.h"
 #include "GameModes/SaiyoraGameMode.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
 const float ASaiyoraGameState::CountdownLength = 10.0f;
+
+#pragma region Boilerplate
 
 ASaiyoraGameState::ASaiyoraGameState()
 {
@@ -14,10 +17,11 @@ void ASaiyoraGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ASaiyoraGameState, ReadyPlayers);
-	DOREPLIFETIME(ASaiyoraGameState, StartTime);
-	DOREPLIFETIME(ASaiyoraGameState, GoalTime);
-	DOREPLIFETIME(ASaiyoraGameState, DungeonState);
+	DOREPLIFETIME(ASaiyoraGameState, DungeonPhase);
 }
+
+#pragma endregion
+#pragma region Time Sync
 
 void ASaiyoraGameState::Tick(float DeltaSeconds)
 {
@@ -35,62 +39,39 @@ void ASaiyoraGameState::ReportAdjustedServerTime(const float AdjustedTime)
 	WorldTime = AdjustedTime;
 }
 
-void ASaiyoraGameState::SetDungeonState(const EDungeonState NewState)
+#pragma endregion 
+
+void ASaiyoraGameState::InitDungeonState()
 {
-	if (DungeonState == NewState)
+	if (!HasAuthority() || DungeonPhase.DungeonState != EDungeonState::None)
 	{
 		return;
 	}
-	DungeonState = NewState;
-	switch (DungeonState)
+	const FDungeonInfo* InfoPtr = DungeonInfoTable.Find(UGameplayStatics::GetCurrentLevelName(this));
+	if (!InfoPtr)
 	{
-	case EDungeonState::None :
-		return;
-	case EDungeonState::WaitingToStart :
-		return;
-	case EDungeonState::Countdown :
-		StartCountdown();
-		return;
-	case EDungeonState::InProgress :
-		return;
-	case EDungeonState::Completed :
 		return;
 	}
-	OnDungeonStateChanged.Broadcast(NewState);
+	DungeonInfo = *InfoPtr;
+	const FDungeonPhase OldPhase = DungeonPhase;
+	DungeonPhase.DungeonState = EDungeonState::WaitingToStart;
+	DungeonPhase.DungeonLength = DungeonInfo.TimeLimit;
+	OnRep_DungeonPhase(OldPhase);
 }
 
 void ASaiyoraGameState::MarkPlayerReady(ASaiyoraPlayerCharacter* Player)
 {
-	if (!Player->HasAuthority() || DungeonState != EDungeonState::WaitingToStart)
+	if (!HasAuthority() || DungeonPhase.DungeonState != EDungeonState::WaitingToStart)
 	{
 		return;
 	}
 	ReadyPlayers.AddUnique(Player);
-	OnReadyPlayersChanged.Broadcast(ReadyPlayers);
+	OnRep_ReadyPlayers();
 	if (ReadyPlayers.Num() == PlayerArray.Num())
 	{
 		GameModeRef->PreventFurtherJoining();
-		SetDungeonState(EDungeonState::Countdown);
+		StartCountdown();
 	}
-}
-
-void ASaiyoraGameState::StartCountdown()
-{
-	StartTime = GetServerWorldTimeSeconds() + CountdownLength;
-	FTimerDelegate CountdownDel;
-	CountdownDel.BindUObject(this, &ASaiyoraGameState::EndCountdown);
-	GetWorld()->GetTimerManager().SetTimer(CountdownHandle, CountdownDel, CountdownLength, false);
-	OnStartTimeChanged.Broadcast(StartTime);
-}
-
-void ASaiyoraGameState::EndCountdown()
-{
-	SetDungeonState(EDungeonState::InProgress);
-}
-
-void ASaiyoraGameState::OnRep_DungeonState()
-{
-	OnDungeonStateChanged.Broadcast(DungeonState);
 }
 
 void ASaiyoraGameState::OnRep_ReadyPlayers()
@@ -98,18 +79,36 @@ void ASaiyoraGameState::OnRep_ReadyPlayers()
 	OnReadyPlayersChanged.Broadcast(ReadyPlayers);	
 }
 
-void ASaiyoraGameState::OnRep_StartTime()
+void ASaiyoraGameState::StartCountdown()
 {
-	if (StartTime != 0.0f)
+	if (!HasAuthority() || DungeonPhase.DungeonState != EDungeonState::WaitingToStart)
 	{
-		OnStartTimeChanged.Broadcast(StartTime);
+		return;
 	}
+	const FDungeonPhase OldPhase = DungeonPhase;
+	DungeonPhase.DungeonState = EDungeonState::Countdown;
+	DungeonPhase.PhaseStartTime = WorldTime;
+	DungeonPhase.PhaseEndTime = DungeonPhase.PhaseStartTime + CountdownLength;
+	FTimerDelegate CountdownDel;
+	CountdownDel.BindUObject(this, &ASaiyoraGameState::EndCountdown);
+	GetWorld()->GetTimerManager().SetTimer(CountdownHandle, CountdownDel, CountdownLength, false);
+	OnRep_DungeonPhase(OldPhase);
 }
 
-void ASaiyoraGameState::OnRep_GoalTime()
+void ASaiyoraGameState::EndCountdown()
 {
-	if (GoalTime != 0.0f)
+	if (!HasAuthority() || DungeonPhase.DungeonState != EDungeonState::Countdown)
 	{
-		OnGoalTimeChanged.Broadcast(GoalTime);
+		return;
 	}
+	const FDungeonPhase OldPhase = DungeonPhase;
+	DungeonPhase.DungeonState = EDungeonState::InProgress;
+	DungeonPhase.PhaseStartTime = WorldTime;
+	DungeonPhase.PhaseEndTime = DungeonPhase.PhaseStartTime + DungeonPhase.DungeonLength;
+	OnRep_DungeonPhase(OldPhase);
+}
+
+void ASaiyoraGameState::OnRep_DungeonPhase(const FDungeonPhase& OldPhase)
+{
+	OnDungeonStateChanged.Broadcast(OldPhase, DungeonPhase);
 }
