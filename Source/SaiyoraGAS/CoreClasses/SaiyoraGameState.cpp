@@ -69,7 +69,7 @@ void ASaiyoraGameState::MarkPlayerReady(ASaiyoraPlayerCharacter* Player)
 	OnRep_ReadyPlayers();
 	if (ReadyPlayers.Num() == PlayerArray.Num())
 	{
-		GameModeRef->PreventFurtherJoining();
+		//GameModeRef->PreventFurtherJoining();
 		StartCountdown();
 	}
 }
