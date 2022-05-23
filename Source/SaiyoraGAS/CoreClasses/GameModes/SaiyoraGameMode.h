@@ -12,7 +12,6 @@ public:
 	
 	ASaiyoraGameMode();
 	virtual void HandleMatchHasStarted() override;
-	void PreventFurtherJoining();
 
 private:
 

@@ -1,4 +1,6 @@
 #include "SaiyoraPlayerCharacter.h"
+
+#include "SaiyoraGameState.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -39,28 +41,72 @@ void ASaiyoraPlayerCharacter::PossessedBy(AController* NewController)
 		AbilityComponent->InitAbilityActorInfo(this, this);
 	}
 	SetOwner(NewController);
-	if (NewController->IsLocalController())
+	if (SaiyoraGameStateRef)
 	{
-		InitUserInterface();
+		FinalInit();
 	}
 }
 
 void ASaiyoraPlayerCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
-	if (GetController() && GetController()->IsLocalController())
+	if (GetLocalRole() == ROLE_AutonomousProxy)
 	{
-		InitUserInterface();
+		if (GetController() && SaiyoraGameStateRef)
+		{
+			FinalInit();
+		}
+	}
+	else if (SaiyoraGameStateRef)
+	{
+		FinalInit();
 	}
 }
 
 void ASaiyoraPlayerCharacter::OnRep_Controller()
 {
 	Super::OnRep_Controller();
-	if (GetPlayerState() && IsLocallyControlled())
+	if (!SaiyoraGameStateRef)
 	{
-		InitUserInterface();
+		SaiyoraGameStateRef = GetWorld()->GetGameState<ASaiyoraGameState>();
+		//TODO: Check/ensure?
 	}
+	if (GetPlayerState())
+	{
+		FinalInit();
+		SaiyoraGameStateRef->InitPlayer(this);
+	}
+}
+
+void ASaiyoraPlayerCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	SaiyoraGameStateRef = GetWorld()->GetGameState<ASaiyoraGameState>();
+	if (GetLocalRole() == ROLE_AutonomousProxy)
+	{
+		if (SaiyoraGameStateRef && GetController() && GetPlayerState())
+		{
+			FinalInit();
+		}
+	}
+	else if (SaiyoraGameStateRef && GetPlayerState())
+	{
+		FinalInit();
+	}
+}
+
+void ASaiyoraPlayerCharacter::FinalInit()
+{
+	if (bInitialized)
+	{
+		return;
+	}
+	bInitialized = true;
+	if (IsLocallyControlled())
+	{
+		CreateUserInterface();
+	}
+	SaiyoraGameStateRef->InitPlayer(this);
 }
 
 void ASaiyoraPlayerCharacter::MoveCharacterForward(float Value)
@@ -92,14 +138,4 @@ void ASaiyoraPlayerCharacter::JumpInput()
 void ASaiyoraPlayerCharacter::ReloadInput()
 {
 	//TODO: Reload ability.
-}
-
-void ASaiyoraPlayerCharacter::InitUserInterface()
-{
-	if (bUserInterfaceInitialized)
-	{
-		return;
-	}
-	bUserInterfaceInitialized = true;
-	CreateUserInterface();
 }

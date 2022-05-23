@@ -1,5 +1,5 @@
 #include "SaiyoraGameState.h"
-#include "GameModes/SaiyoraGameMode.h"
+#include "MultiplayerSessionsSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
@@ -39,7 +39,73 @@ void ASaiyoraGameState::ReportAdjustedServerTime(const float AdjustedTime)
 	WorldTime = AdjustedTime;
 }
 
-#pragma endregion 
+#pragma endregion
+#pragma region Player Handling
+
+void ASaiyoraGameState::InitPlayer(ASaiyoraPlayerCharacter* Player)
+{
+	if (!Player || GroupPlayers.Contains(Player))
+	{
+		return;
+	}
+	GroupPlayers.Add(Player);
+	OnPlayerAdded.Broadcast(Player);
+}
+
+void ASaiyoraGameState::MarkPlayerReady(ASaiyoraPlayerCharacter* Player)
+{
+	if (!HasAuthority() || DungeonPhase.DungeonState != EDungeonState::WaitingToStart || !Player || ReadyPlayers.Contains(Player))
+	{
+		return;
+	}
+	const TArray<ASaiyoraPlayerCharacter*> PreviousPlayers = ReadyPlayers;
+	ReadyPlayers.Add(Player);
+	OnRep_ReadyPlayers(PreviousPlayers);
+	if (ReadyPlayers.Num() == GroupPlayers.Num())
+	{
+		if (const UMultiplayerSessionsSubsystem* SessionsSubsystem = GetGameInstance()->GetSubsystem<UMultiplayerSessionsSubsystem>())
+		{
+			FOnlineSessionSettings SessionSettings = SessionsSubsystem->GetSessionSettings(NAME_GameSession);
+			SessionSettings.bAllowJoinInProgress = false;
+			SessionsSubsystem->UpdateSession(NAME_GameSession, SessionSettings);
+		}
+		StartCountdown();
+	}
+}
+
+void ASaiyoraGameState::MarkPlayerNotReady(ASaiyoraPlayerCharacter* Player)
+{
+	if (!HasAuthority() || DungeonPhase.DungeonState != EDungeonState::WaitingToStart || !Player || !ReadyPlayers.Contains(Player))
+	{
+		return;
+	}
+	const TArray<ASaiyoraPlayerCharacter*> PreviousPlayers = ReadyPlayers;
+	ReadyPlayers.Remove(Player);
+	OnRep_ReadyPlayers(PreviousPlayers);
+}
+
+void ASaiyoraGameState::OnRep_ReadyPlayers(const TArray<ASaiyoraPlayerCharacter*>& PreviousPlayers)
+{
+	TArray<ASaiyoraPlayerCharacter*> UncheckedPlayers = PreviousPlayers;
+	for (ASaiyoraPlayerCharacter* Player : ReadyPlayers)
+	{
+		if (PreviousPlayers.Contains(Player))
+		{
+			UncheckedPlayers.Remove(Player);
+		}
+		else
+		{
+			OnPlayerReadyChanged.Broadcast(Player, true);
+		}
+	}
+	for (const ASaiyoraPlayerCharacter* Player : UncheckedPlayers)
+	{
+		OnPlayerReadyChanged.Broadcast(Player, false);
+	}
+}
+
+#pragma endregion
+#pragma region Match Flow
 
 void ASaiyoraGameState::InitDungeonState()
 {
@@ -47,36 +113,9 @@ void ASaiyoraGameState::InitDungeonState()
 	{
 		return;
 	}
-	const FDungeonInfo* InfoPtr = DungeonInfoTable.Find(UGameplayStatics::GetCurrentLevelName(this));
-	if (!InfoPtr)
-	{
-		return;
-	}
-	DungeonInfo = *InfoPtr;
 	const FDungeonPhase OldPhase = DungeonPhase;
 	DungeonPhase.DungeonState = EDungeonState::WaitingToStart;
-	DungeonPhase.DungeonLength = DungeonInfo.TimeLimit;
 	OnRep_DungeonPhase(OldPhase);
-}
-
-void ASaiyoraGameState::MarkPlayerReady(ASaiyoraPlayerCharacter* Player)
-{
-	if (!HasAuthority() || DungeonPhase.DungeonState != EDungeonState::WaitingToStart)
-	{
-		return;
-	}
-	ReadyPlayers.AddUnique(Player);
-	OnRep_ReadyPlayers();
-	if (ReadyPlayers.Num() == PlayerArray.Num())
-	{
-		//GameModeRef->PreventFurtherJoining();
-		StartCountdown();
-	}
-}
-
-void ASaiyoraGameState::OnRep_ReadyPlayers()
-{
-	OnReadyPlayersChanged.Broadcast(ReadyPlayers);	
 }
 
 void ASaiyoraGameState::StartCountdown()
@@ -110,5 +149,20 @@ void ASaiyoraGameState::EndCountdown()
 
 void ASaiyoraGameState::OnRep_DungeonPhase(const FDungeonPhase& OldPhase)
 {
+	if (!bInitialized)
+	{
+		if (const FDungeonInfo* InfoPtr = DungeonInfoTable.Find(UGameplayStatics::GetCurrentLevelName(this)))
+		{
+			DungeonInfo = *InfoPtr;
+			DungeonPhase.DungeonLength = DungeonInfo.TimeLimit;
+			bInitialized = true;
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("No dungeon info found in GameState init!"));
+		}
+	}
 	OnDungeonStateChanged.Broadcast(OldPhase, DungeonPhase);
 }
+
+#pragma endregion 

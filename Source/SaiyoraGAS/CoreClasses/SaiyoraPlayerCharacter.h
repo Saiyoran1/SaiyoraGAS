@@ -17,6 +17,7 @@ public:
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void OnRep_PlayerState() override;
 	virtual void OnRep_Controller() override;
+	virtual void BeginPlay() override;
 
 	UFUNCTION(BlueprintPure, Category = "Camera")
 	class USpringArmComponent* GetSpringArm() { return SpringArm; }
@@ -26,6 +27,9 @@ public:
 	USaiyoraAbilityComponent* GetAbilityComponent() { return AbilityComponent; }
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilityComponent; }
+
+	UFUNCTION(BlueprintPure)
+	class ASaiyoraGameState* GetSaiyoraGameState() const { return SaiyoraGameStateRef; }
 
 protected:
 
@@ -52,6 +56,9 @@ private:
 	UFUNCTION()
 	void ReloadInput();
 
-	void InitUserInterface();
-	bool bUserInterfaceInitialized = false;
+	void FinalInit();
+	bool bInitialized = false;
+
+	UPROPERTY()
+	class ASaiyoraGameState* SaiyoraGameStateRef;
 };

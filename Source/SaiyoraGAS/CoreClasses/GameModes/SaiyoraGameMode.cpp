@@ -1,5 +1,4 @@
 #include "SaiyoraGameMode.h"
-#include "OnlineSubsystemUtils.h"
 #include "SaiyoraGAS/CoreClasses/SaiyoraGameState.h"
 #include "SaiyoraGAS/CoreClasses/SaiyoraPlayerCharacter.h"
 #include "SaiyoraGAS/CoreClasses/SaiyoraPlayerController.h"
@@ -17,22 +16,9 @@ void ASaiyoraGameMode::HandleMatchHasStarted()
 {
 	Super::HandleMatchHasStarted();
 	GameStateRef = GetGameState<ASaiyoraGameState>();
-	GameStateRef->InitDungeonState();
-}
-
-void ASaiyoraGameMode::PreventFurtherJoining()
-{
-	if (const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld()))
+	if (!GameStateRef)
 	{
-		const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
-		if (SessionInterface.IsValid())
-		{
-			if (const FNamedOnlineSession* CurrentGameSession = SessionInterface->GetNamedSession(NAME_GameSession))
-			{
-				FOnlineSessionSettings SessionSettings = CurrentGameSession->SessionSettings;
-				SessionSettings.bAllowJoinInProgress = false;
-				SessionInterface->UpdateSession(NAME_GameSession, SessionSettings);
-			}
-		}
+		//TODO: ensure/check?
 	}
+	GameStateRef->InitDungeonState();
 }

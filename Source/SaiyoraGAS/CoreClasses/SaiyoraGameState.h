@@ -42,7 +42,8 @@ struct FDungeonPhase
 	float DungeonLength = 0.0f;
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnReadyPlayersChanged, const TArray<ASaiyoraPlayerCharacter*>&, ReadyPlayers);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerChanged, const ASaiyoraPlayerCharacter*, Player);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPlayerReadyChanged, const ASaiyoraPlayerCharacter*, Player, const bool, bReadyStatus);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTimeChanged, const float, Time);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDungeonStateChanged, const FDungeonPhase&, OldState, const FDungeonPhase&, NewState);
 
@@ -59,10 +60,21 @@ public:
 	virtual float GetServerWorldTimeSeconds() const override;
 	void ReportAdjustedServerTime(const float AdjustedTime);
 
+	void InitPlayer(ASaiyoraPlayerCharacter* Player);
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
 	void MarkPlayerReady(ASaiyoraPlayerCharacter* Player);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
+	void MarkPlayerNotReady(ASaiyoraPlayerCharacter* Player);
 	UPROPERTY(BlueprintAssignable)
-	FOnReadyPlayersChanged OnReadyPlayersChanged;
+	FOnPlayerReadyChanged OnPlayerReadyChanged;
+	UPROPERTY(BlueprintAssignable)
+	FOnPlayerChanged OnPlayerAdded;
+	UPROPERTY(BlueprintAssignable)
+	FOnPlayerChanged OnPlayerRemoved;
+	UFUNCTION(BlueprintPure)
+	void GetSaiyoraPlayers(TArray<ASaiyoraPlayerCharacter*>& OutPlayers) const { OutPlayers = GroupPlayers; }
+	UFUNCTION(BlueprintPure)
+	bool IsPlayerReady(const ASaiyoraPlayerCharacter* Player) const { return ReadyPlayers.Contains(Player); }
 
 	void InitDungeonState();
 	UPROPERTY(BlueprintAssignable)
@@ -98,13 +110,16 @@ private:
 	UPROPERTY(ReplicatedUsing=OnRep_ReadyPlayers)
 	TArray<ASaiyoraPlayerCharacter*> ReadyPlayers;
 	UFUNCTION()
-	void OnRep_ReadyPlayers();
+	void OnRep_ReadyPlayers(const TArray<ASaiyoraPlayerCharacter*>& PreviousPlayers);
+	UPROPERTY()
+	TArray<ASaiyoraPlayerCharacter*> GroupPlayers;
 
 	static const float CountdownLength;
 	void StartCountdown();
 	FTimerHandle CountdownHandle;
 	void EndCountdown();
 
+	bool bInitialized = false;
 	FDungeonInfo DungeonInfo;
 
 	UPROPERTY()

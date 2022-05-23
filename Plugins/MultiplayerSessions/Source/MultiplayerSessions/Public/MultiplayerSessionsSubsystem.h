@@ -66,6 +66,8 @@ public:
 	void DestroySession(const FOnDestroySessionCallback& Callback);
 	UFUNCTION(BlueprintCallable)
 	bool StartSession();
+	void UpdateSession(const FName SessionName, FOnlineSessionSettings& NewSettings) const;
+	FOnlineSessionSettings GetSessionSettings(const FName SessionName) const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	FString GetSessionState() const;

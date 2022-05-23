@@ -397,19 +397,58 @@ bool UMultiplayerSessionsSubsystem::StartSession()
 	return SessionInterface->StartSession(NAME_GameSession);
 }
 
+void UMultiplayerSessionsSubsystem::UpdateSession(const FName SessionName, FOnlineSessionSettings& NewSettings) const
+{
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	if (!Subsystem)
+	{
+		return;
+	}
+	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	if (!SessionInterface.IsValid())
+	{
+		return;
+	}
+	SessionInterface->UpdateSession(SessionName, NewSettings);
+}
+
+FOnlineSessionSettings UMultiplayerSessionsSubsystem::GetSessionSettings(const FName SessionName) const
+{
+	if (SessionName == NAME_None)
+	{
+		return FOnlineSessionSettings();
+	}
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	if (!Subsystem)
+	{
+		return FOnlineSessionSettings();
+	}
+	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	if (!SessionInterface.IsValid())
+	{
+		return FOnlineSessionSettings();
+	}
+	const FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
+	if (!Session)
+	{
+		return FOnlineSessionSettings();
+	}
+	return Session->SessionSettings;
+}
+
 FString UMultiplayerSessionsSubsystem::GetSessionState() const
 {
-	IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
 	if (!Subsystem)
 	{
 		return FString(TEXT("Invalid subsystem."));
 	}
-	IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
 	if (!SessionInterface.IsValid())
 	{
 		return FString(TEXT("Invalid session interface"));
 	}
-	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(NAME_GameSession);
+	const FNamedOnlineSession* Session = SessionInterface->GetNamedSession(NAME_GameSession);
 	if (!Session)
 	{
 		return FString(TEXT("No valid session."));
