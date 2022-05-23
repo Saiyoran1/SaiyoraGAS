@@ -41,63 +41,35 @@ void ASaiyoraPlayerCharacter::PossessedBy(AController* NewController)
 		AbilityComponent->InitAbilityActorInfo(this, this);
 	}
 	SetOwner(NewController);
-	if (SaiyoraGameStateRef)
-	{
-		FinalInit();
-	}
+	InitializeSaiyoraCharacter();
 }
 
 void ASaiyoraPlayerCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
-	if (GetLocalRole() == ROLE_AutonomousProxy)
-	{
-		if (GetController() && SaiyoraGameStateRef)
-		{
-			FinalInit();
-		}
-	}
-	else if (SaiyoraGameStateRef)
-	{
-		FinalInit();
-	}
+	InitializeSaiyoraCharacter();
 }
 
 void ASaiyoraPlayerCharacter::OnRep_Controller()
 {
 	Super::OnRep_Controller();
-	if (!SaiyoraGameStateRef)
-	{
-		SaiyoraGameStateRef = GetWorld()->GetGameState<ASaiyoraGameState>();
-		//TODO: Check/ensure?
-	}
-	if (GetPlayerState())
-	{
-		FinalInit();
-		SaiyoraGameStateRef->InitPlayer(this);
-	}
+	InitializeSaiyoraCharacter();
 }
 
 void ASaiyoraPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	SaiyoraGameStateRef = GetWorld()->GetGameState<ASaiyoraGameState>();
-	if (GetLocalRole() == ROLE_AutonomousProxy)
-	{
-		if (SaiyoraGameStateRef && GetController() && GetPlayerState())
-		{
-			FinalInit();
-		}
-	}
-	else if (SaiyoraGameStateRef && GetPlayerState())
-	{
-		FinalInit();
-	}
+	InitializeSaiyoraCharacter();
 }
 
-void ASaiyoraPlayerCharacter::FinalInit()
+void ASaiyoraPlayerCharacter::InitializeSaiyoraCharacter()
 {
 	if (bInitialized)
+	{
+		return;
+	}
+	if (!SaiyoraGameStateRef || !GetPlayerState() || (GetLocalRole() != ROLE_SimulatedProxy && !GetController()))
 	{
 		return;
 	}

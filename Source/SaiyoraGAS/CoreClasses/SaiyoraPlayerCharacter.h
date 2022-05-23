@@ -56,7 +56,7 @@ private:
 	UFUNCTION()
 	void ReloadInput();
 
-	void FinalInit();
+	void InitializeSaiyoraCharacter();
 	bool bInitialized = false;
 
 	UPROPERTY()
