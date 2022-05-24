@@ -5,7 +5,7 @@
 #include "SaiyoraGameState.generated.h"
 
 USTRUCT(BlueprintType)
-struct FDungeonInfo
+struct FDungeonRequirements
 {
 	GENERATED_BODY()
 
@@ -42,10 +42,46 @@ struct FDungeonPhase
 	float DungeonLength = 0.0f;
 };
 
+USTRUCT(BlueprintType)
+struct FBossProgress
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadOnly)
+	FGameplayTag BossTag;
+	UPROPERTY(BlueprintReadOnly)
+	bool bKilled = false;
+
+	FORCEINLINE bool operator==(const FBossProgress& Other) const { return Other.BossTag == BossTag; }
+	FBossProgress() { BossTag = FGameplayTag::EmptyTag; bKilled = false; }
+	FBossProgress(const FGameplayTag InitBossTag, const bool bInitKilled) { BossTag = InitBossTag; bKilled = bInitKilled; }
+};
+
+USTRUCT(BlueprintType)
+struct FDungeonProgress
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 KillCount = 0;
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FBossProgress> BossKills;
+	UPROPERTY(BlueprintReadOnly)
+	int32 DeathCount = 0;
+	UPROPERTY(BlueprintReadOnly)
+	bool bDepleted = false;
+	UPROPERTY(BlueprintReadOnly)
+	float CompletionTime = 0.0f;
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerChanged, const ASaiyoraPlayerCharacter*, Player);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPlayerReadyChanged, const ASaiyoraPlayerCharacter*, Player, const bool, bReadyStatus);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTimeChanged, const float, Time);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDungeonStateChanged, const FDungeonPhase&, OldState, const FDungeonPhase&, NewState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDungeonPhaseChanged, const FDungeonPhase&, OldState, const FDungeonPhase&, NewState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBossKilled, const FGameplayTag, BossTag);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCountChanged, const int32, NewCount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDungeonCompleted, const float, FinalTime);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDungeonDepleted);
 
 UCLASS()
 class SAIYORAGAS_API ASaiyoraGameState : public AGameState
@@ -53,6 +89,8 @@ class SAIYORAGAS_API ASaiyoraGameState : public AGameState
 	GENERATED_BODY()
 
 public:
+
+	static const FGameplayTag GenericBossTag;
 
 	ASaiyoraGameState();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -78,25 +116,60 @@ public:
 
 	void InitDungeonState();
 	UPROPERTY(BlueprintAssignable)
-	FOnDungeonStateChanged OnDungeonStateChanged;
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	FOnDungeonPhaseChanged OnDungeonPhaseChanged;
+	UFUNCTION(BlueprintPure)
 	EDungeonState GetDungeonState() const { return DungeonPhase.DungeonState; }
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UFUNCTION(BlueprintPure)
 	float GetDungeonStartTime() const { return DungeonPhase.PhaseStartTime; }
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UFUNCTION(BlueprintPure)
 	float GetDungeonEndTime() const { return DungeonPhase.PhaseEndTime; }
+	UFUNCTION(BlueprintPure)
+	FDungeonPhase GetDungeonPhaseInfo() const { return DungeonPhase; }
 
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	float GetDungeonTimeLimit() const { return DungeonInfo.TimeLimit; }
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	int32 GetDungeonKillCount() const { return DungeonInfo.KillCountRequirement; }
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	void GetBossKillRequirements(FGameplayTagContainer& OutTags) const { OutTags = DungeonInfo.BossKillTags; }
+	UFUNCTION(BlueprintPure)
+	float GetDungeonTimeLimit() const { return DungeonRequirements.TimeLimit; }
+	UFUNCTION(BlueprintPure)
+	int32 GetDungeonKillCount() const { return DungeonRequirements.KillCountRequirement; }
+	UFUNCTION(BlueprintPure)
+	void GetBossKillRequirements(FGameplayTagContainer& OutTags) const { OutTags = DungeonRequirements.BossKillTags; }
+	UFUNCTION(BlueprintPure)
+	FDungeonRequirements GetDungeonRequirements() const { return DungeonRequirements; }
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
+	void ReportTrashDeath(const int32 CountToAdd = 1);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
+	void ReportBossDeath(const FGameplayTag BossTag);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
+	void ReportPlayerDeath();
+	UFUNCTION(BlueprintPure)
+	int32 GetCurrentKillCount() const { return DungeonProgress.KillCount; }
+	UFUNCTION(BlueprintPure)
+	void GetBossKillProgress(TArray<FBossProgress>& OutProgress) const { OutProgress = DungeonProgress.BossKills; }
+	UFUNCTION(BlueprintPure)
+	int32 GetDeathCount() const { return DungeonProgress.DeathCount; }
+	UFUNCTION(BlueprintPure)
+	bool IsDungeonDepleted() const { return DungeonProgress.bDepleted; }
+	UFUNCTION(BlueprintPure)
+	float GetDungeonCompletionTime() const { return DungeonProgress.CompletionTime; }
+	UFUNCTION(BlueprintPure)
+	FDungeonProgress GetDungeonProgress() const { return DungeonProgress; }
+	UPROPERTY(BlueprintAssignable)
+	FOnBossKilled OnBossKilled;
+	UPROPERTY(BlueprintAssignable)
+	FOnCountChanged OnKillCountChanged;
+	UPROPERTY(BlueprintAssignable)
+	FOnCountChanged OnDeathCountChanged;
+	UPROPERTY(BlueprintAssignable)
+	FOnDungeonCompleted OnDungeonCompleted;
+	UPROPERTY(BlueprintAssignable)
+	FOnDungeonDepleted OnDungeonDepleted;
 
 protected:
 
 	UPROPERTY(EditDefaultsOnly)
-	TMap<FString, FDungeonInfo> DungeonInfoTable;
+	TMap<FString, FDungeonRequirements> DungeonInfoTable;
+	UPROPERTY(EditDefaultsOnly)
+	float DeathPenaltySeconds = 5.0f;
 
 private:
 
@@ -118,9 +191,18 @@ private:
 	void StartCountdown();
 	FTimerHandle CountdownHandle;
 	void EndCountdown();
-
+	void MoveToCompletedState();
+	
 	bool bInitialized = false;
-	FDungeonInfo DungeonInfo;
+	FDungeonRequirements DungeonRequirements;
+
+	UPROPERTY(ReplicatedUsing=OnRep_DungeonProgress)
+	FDungeonProgress DungeonProgress;
+	UFUNCTION()
+	void OnRep_DungeonProgress(const FDungeonProgress& PreviousProgress);
+	void OnUpdatedProgress(const FDungeonProgress& PreviousProgress);
+	FTimerHandle DepletionHandle;
+	void DepleteDungeon();
 
 	UPROPERTY()
 	class ASaiyoraGameMode* GameModeRef;
