@@ -120,9 +120,13 @@ public:
 	UFUNCTION(BlueprintPure)
 	EDungeonState GetDungeonState() const { return DungeonPhase.DungeonState; }
 	UFUNCTION(BlueprintPure)
-	float GetDungeonStartTime() const { return DungeonPhase.PhaseStartTime; }
+	float GetPhaseStartTime() const { return DungeonPhase.PhaseStartTime; }
 	UFUNCTION(BlueprintPure)
-	float GetDungeonEndTime() const { return DungeonPhase.PhaseEndTime; }
+	float GetPhaseEndTime() const { return DungeonPhase.PhaseEndTime; }
+	UFUNCTION(BlueprintPure)
+	float GetDungeonLength() const { return DungeonRequirements.TimeLimit; }
+	UFUNCTION(BlueprintPure)
+	float GetElapsedPhaseTime() const;
 	UFUNCTION(BlueprintPure)
 	FDungeonPhase GetDungeonPhaseInfo() const { return DungeonPhase; }
 
@@ -147,6 +151,10 @@ public:
 	void GetBossKillProgress(TArray<FBossProgress>& OutProgress) const { OutProgress = DungeonProgress.BossKills; }
 	UFUNCTION(BlueprintPure)
 	int32 GetDeathCount() const { return DungeonProgress.DeathCount; }
+	UFUNCTION(BlueprintPure)
+	float GetDeathPenalty() const { return DeathPenaltySeconds; }
+	UFUNCTION(BlueprintPure)
+	float GetCurrentPenaltyTime() const { return DeathPenaltySeconds * DungeonProgress.DeathCount; }
 	UFUNCTION(BlueprintPure)
 	bool IsDungeonDepleted() const { return DungeonProgress.bDepleted; }
 	UFUNCTION(BlueprintPure)

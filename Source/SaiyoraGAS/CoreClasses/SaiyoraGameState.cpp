@@ -120,6 +120,25 @@ void ASaiyoraGameState::InitDungeonState()
 	OnRep_DungeonPhase(OldPhase);
 }
 
+float ASaiyoraGameState::GetElapsedPhaseTime() const
+{
+	switch (DungeonPhase.DungeonState)
+	{
+		case EDungeonState::None :
+			return 0.0f;
+		case EDungeonState::WaitingToStart :
+			return 0.0f;
+		case EDungeonState::Countdown :
+			return WorldTime - DungeonPhase.PhaseStartTime;
+		case EDungeonState::InProgress :
+			return (WorldTime - DungeonPhase.PhaseStartTime) + (DeathPenaltySeconds * DungeonProgress.DeathCount);
+		case EDungeonState::Completed :
+			return WorldTime - DungeonProgress.CompletionTime;
+		default :
+			return 0.0f;
+	}
+}
+
 void ASaiyoraGameState::StartCountdown()
 {
 	if (!HasAuthority() || DungeonPhase.DungeonState != EDungeonState::WaitingToStart)
