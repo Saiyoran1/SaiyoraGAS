@@ -1,4 +1,5 @@
 #include "HealthAttributeSet.h"
+#include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
 #include "SaiyoraGAS/AbilitySystem/Components/SaiyoraAbilityComponent.h"
 
@@ -21,6 +22,7 @@ void UHealthAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME_CONDITION_NOTIFY(UHealthAttributeSet, Health, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UHealthAttributeSet, MaxHealth, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UHealthAttributeSet, Absorb, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME(UHealthAttributeSet, DamageTakenEvents);
 }
 
 void UHealthAttributeSet::SetupDelegates()
@@ -28,6 +30,7 @@ void UHealthAttributeSet::SetupDelegates()
 	SETUP_NOTIFIER(UHealthAttributeSet, Health);
 	SETUP_NOTIFIER(UHealthAttributeSet, MaxHealth);
 	SETUP_NOTIFIER(UHealthAttributeSet, Absorb);
+	DamageTakenEvents.OwningHealthSet = this;
 }
 
 void UHealthAttributeSet::ClampAttributes(const FGameplayAttribute& Attribute, float& NewValue) const
@@ -54,6 +57,21 @@ void UHealthAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribut
 		ScaleAttributeOnMaxChange(GetHealthAttribute(), OldValue, NewValue);
 		ClampAttributeOnMaxChange(GetAbsorbAttribute(), NewValue);
 	}
+}
+
+void UHealthAttributeSet::AuthNotifyDamageTakenEvent(const FDamagingEvent& DamageEvent)
+{
+	FDamagingEventItem TimestampedEvent;
+	TimestampedEvent.DamageEvent = DamageEvent;
+	TimestampedEvent.Time = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+	DamageTakenEvents.MarkItemDirty(DamageTakenEvents.Items.Add_GetRef(TimestampedEvent));
+	OnDamageTaken.Broadcast(DamageEvent);
+}
+
+void UHealthAttributeSet::ReplicatedNotifyDamageTakenEvent(const FDamagingEvent& DamageEvent, const float EventTime)
+{
+	//TODO: Implement time filtering.
+	OnDamageTaken.Broadcast(DamageEvent);
 }
 
 void UHealthAttributeSet::OnRep_Health(const FGameplayAttributeData& Old)

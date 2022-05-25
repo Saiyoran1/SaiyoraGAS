@@ -1,6 +1,7 @@
 ﻿#include "DamageExecution.h"
 #include "SaiyoraGAS/AbilitySystem/Attributes/HealthAttributeSet.h"
 #include "SaiyoraGAS/AbilitySystem/Attributes/DamageAttributeSet.h"
+#include "SaiyoraGAS/AbilitySystem/Components/SaiyoraAbilityComponent.h"
 
 struct DamageCapture
 {
@@ -112,16 +113,44 @@ void UDamageExecution::Execute_Implementation(const FGameplayEffectCustomExecuti
 	}
 	if (IncomingDamage > 0.0f)
 	{
-		//TODO: Is this how this should be done?
-		/*FGameplayEventData EventData;
-		EventData.Instigator = ExecutionParams.GetSourceAbilitySystemComponent()->GetOwner();
-		EventData.Target = ExecutionParams.GetTargetAbilitySystemComponent()->GetOwner();
-		EventData.EventMagnitude = IncomingDamage;
-		EventData.EventTag = FGameplayTag::RequestGameplayTag(FName("Event.DamageDone"), false);
-		EventData.InstigatorTags = Spec.CapturedSourceTags.GetActorTags();
-		EventData.TargetTags = Spec.CapturedTargetTags.GetActorTags();
-		ExecutionParams.GetSourceAbilitySystemComponent()->HandleGameplayEvent(EventData.EventTag, &EventData);
-		EventData.EventTag = FGameplayTag::RequestGameplayTag(FName("Event.DamageTaken"), false);
-		ExecutionParams.GetTargetAbilitySystemComponent()->HandleGameplayEvent(EventData.EventTag, &EventData);*/
+		UHealthAttributeSet* TargetHealthSet = nullptr;
+		USaiyoraAbilityComponent* TargetComponent = Cast<USaiyoraAbilityComponent>(ExecutionParams.GetTargetAbilitySystemComponent());
+		if (TargetComponent)
+		{
+			TargetHealthSet = const_cast<UHealthAttributeSet*>(Cast<UHealthAttributeSet>(TargetComponent->GetAttributeSet(UHealthAttributeSet::StaticClass())));
+		}
+		UDamageAttributeSet* SourceDamageSet = nullptr;
+		USaiyoraAbilityComponent* SourceComponent = Cast<USaiyoraAbilityComponent>(ExecutionParams.GetSourceAbilitySystemComponent());
+		if (SourceComponent)
+		{
+			SourceDamageSet = const_cast<UDamageAttributeSet*>(Cast<UDamageAttributeSet>(SourceComponent->GetAttributeSet(UDamageAttributeSet::StaticClass())));
+		}
+		if (TargetHealthSet || SourceDamageSet)
+		{
+			FDamagingEvent DamageEvent;
+			DamageEvent.Attacker = SourceComponent;
+			DamageEvent.Target = TargetComponent;
+			const FGameplayTagContainer HitStyleFilter = FGameplayTagContainer(FGameplayTag::RequestGameplayTag(FName(TEXT("Damage.HitStyle")), false));
+			DamageEvent.HitStyle = Spec.CapturedSourceTags.GetSpecTags().Filter(HitStyleFilter).First();
+			if (!DamageEvent.HitStyle.IsValid())
+			{
+				DamageEvent.HitStyle = FGameplayTag::RequestGameplayTag(FName(TEXT("Damage.HitStyle.Default")), false);
+			}
+			const FGameplayTagContainer DamageTypeFilter = FGameplayTagContainer(FGameplayTag::RequestGameplayTag(FName(TEXT("Damage.Type")), false));
+			DamageEvent.DamageType = Spec.CapturedSourceTags.GetSpecTags().Filter(DamageTypeFilter).First();
+			if (!DamageEvent.DamageType.IsValid())
+			{
+				DamageEvent.DamageType = FGameplayTag::RequestGameplayTag(FName(TEXT("Damage.Type.Default")), false);
+			}
+			DamageEvent.Damage = IncomingDamage;
+			if (TargetHealthSet)
+			{
+				TargetHealthSet->AuthNotifyDamageTakenEvent(DamageEvent);
+			}
+			if (SourceDamageSet)
+			{
+				SourceDamageSet->AuthNotifyDamageDoneEvent(DamageEvent);
+			}
+		}
 	}
 }

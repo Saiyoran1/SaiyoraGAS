@@ -1,5 +1,6 @@
 #include "SaiyoraAbilityComponent.h"
 #include "SaiyoraGAS/AbilitySystem/Abilities/SaiyoraGameplayAbility.h"
+#include "SaiyoraGAS/AbilitySystem/Attributes/HealthAttributeSet.h"
 #include "SaiyoraGAS/AbilitySystem/Attributes/SaiyoraAttributeSet.h"
 #include "SaiyoraGAS/AbilitySystem/Effects/SaiyoraGameplayEffect.h"
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "SaiyoraAttributeSet.h"
+#include "EventStructs/DamageStructs.h"
 #include "HealthAttributeSet.generated.h"
 
 UCLASS()
@@ -61,9 +62,20 @@ public:
 	FGameplayAttributeData HealingTakenAddon;
 	ATTRIBUTE_ACCESSORS(UHealthAttributeSet, HealingTakenAddon);
 
+	void AuthNotifyDamageTakenEvent(const FDamagingEvent& DamageEvent);
+	void ReplicatedNotifyDamageTakenEvent(const FDamagingEvent& DamageEvent, const float EventTime);
+	UPROPERTY(BlueprintAssignable)
+	FOnDamage OnDamageTaken;
+	UPROPERTY(BlueprintAssignable)
+	FOnDamage OnHealingTaken;
+	UPROPERTY(BlueprintAssignable)
+	FOnDamage OnAbsorbTaken;
+
 private:
 
 	virtual void ClampAttributes(const FGameplayAttribute& Attribute, float& NewValue) const override;
 	virtual void SetupDelegates() override;
-	
+
+	UPROPERTY(Replicated)
+	FDamagingEventArray DamageTakenEvents;
 };

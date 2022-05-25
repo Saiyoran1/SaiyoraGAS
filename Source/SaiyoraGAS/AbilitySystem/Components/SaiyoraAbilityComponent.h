@@ -11,7 +11,6 @@ class SAIYORAGAS_API USaiyoraAbilityComponent : public UAbilitySystemComponent
 public:
 
 	virtual void BeginPlay() override;
-
 	void InitAttributes(const TMap<TSubclassOf<class USaiyoraAttributeSet>, TSubclassOf<class USaiyoraGameplayEffect>>& Attributes);
 	
 private:
