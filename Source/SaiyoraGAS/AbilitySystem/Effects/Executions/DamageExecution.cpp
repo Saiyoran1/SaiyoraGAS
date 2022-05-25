@@ -50,7 +50,7 @@ void UDamageExecution::Execute_Implementation(const FGameplayEffectCustomExecuti
 	Super::Execute_Implementation(ExecutionParams, OutExecutionOutput);
 
 	const FGameplayEffectSpec& Spec = ExecutionParams.GetOwningSpec();
-	const float BaseDamage = FMath::Max(Spec.GetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Data.BaseDamage")), false, -1.0f), 0.0f);
+	const float BaseDamage = FMath::Max(Spec.GetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Data.BaseDamage"), false), false, -1.0f), 0.0f);
 	FAggregatorEvaluateParameters EvaluationParams;
 	EvaluationParams.SourceTags = Spec.CapturedSourceTags.GetAggregatedTags();
 	EvaluationParams.TargetTags = Spec.CapturedTargetTags.GetAggregatedTags();

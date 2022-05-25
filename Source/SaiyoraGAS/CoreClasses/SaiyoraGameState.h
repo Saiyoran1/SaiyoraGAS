@@ -88,35 +88,67 @@ class SAIYORAGAS_API ASaiyoraGameState : public AGameState
 {
 	GENERATED_BODY()
 
-public:
+	//Boilerplate
 
-	static const FGameplayTag GenericBossTag;
+public:
 
 	ASaiyoraGameState();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+private:
+
+	UPROPERTY()
+	class ASaiyoraGameMode* GameModeRef;
+
+	//Time Sync
+
+public:
+	
 	virtual void Tick(float DeltaSeconds) override;
 	virtual float GetServerWorldTimeSeconds() const override;
 	void ReportAdjustedServerTime(const float AdjustedTime);
 
+private:
+
+	float WorldTime = 0.0f;
+
+	//Player Handling
+
+public:
+
 	void InitPlayer(ASaiyoraPlayerCharacter* Player);
+	UFUNCTION(BlueprintPure)
+	void GetSaiyoraPlayers(TArray<ASaiyoraPlayerCharacter*>& OutPlayers) const { OutPlayers = GroupPlayers; }
+	UPROPERTY(BlueprintAssignable)
+	FOnPlayerChanged OnPlayerAdded;
+	UPROPERTY(BlueprintAssignable)
+	FOnPlayerChanged OnPlayerRemoved;
+	
+	UFUNCTION(BlueprintPure)
+	bool IsPlayerReady(const ASaiyoraPlayerCharacter* Player) const { return ReadyPlayers.Contains(Player); }
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
 	void MarkPlayerReady(ASaiyoraPlayerCharacter* Player);
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
 	void MarkPlayerNotReady(ASaiyoraPlayerCharacter* Player);
 	UPROPERTY(BlueprintAssignable)
 	FOnPlayerReadyChanged OnPlayerReadyChanged;
-	UPROPERTY(BlueprintAssignable)
-	FOnPlayerChanged OnPlayerAdded;
-	UPROPERTY(BlueprintAssignable)
-	FOnPlayerChanged OnPlayerRemoved;
-	UFUNCTION(BlueprintPure)
-	void GetSaiyoraPlayers(TArray<ASaiyoraPlayerCharacter*>& OutPlayers) const { OutPlayers = GroupPlayers; }
-	UFUNCTION(BlueprintPure)
-	bool IsPlayerReady(const ASaiyoraPlayerCharacter* Player) const { return ReadyPlayers.Contains(Player); }
+
+private:
+
+	UPROPERTY()
+	TArray<ASaiyoraPlayerCharacter*> GroupPlayers;
+	UPROPERTY(ReplicatedUsing=OnRep_ReadyPlayers)
+	TArray<ASaiyoraPlayerCharacter*> ReadyPlayers;
+	UFUNCTION()
+	void OnRep_ReadyPlayers(const TArray<ASaiyoraPlayerCharacter*>& PreviousPlayers);
+
+	//Match Flow
+
+public:
 
 	void InitDungeonState();
-	UPROPERTY(BlueprintAssignable)
-	FOnDungeonPhaseChanged OnDungeonPhaseChanged;
+	UFUNCTION(BlueprintPure)
+	FDungeonPhase GetDungeonPhaseInfo() const { return DungeonPhase; }
 	UFUNCTION(BlueprintPure)
 	EDungeonState GetDungeonState() const { return DungeonPhase.DungeonState; }
 	UFUNCTION(BlueprintPure)
@@ -126,25 +158,57 @@ public:
 	UFUNCTION(BlueprintPure)
 	float GetDungeonLength() const { return DungeonRequirements.TimeLimit; }
 	UFUNCTION(BlueprintPure)
-	float GetElapsedPhaseTime() const;
-	UFUNCTION(BlueprintPure)
-	FDungeonPhase GetDungeonPhaseInfo() const { return DungeonPhase; }
+	float GetElapsedDungeonTime() const;
+	UPROPERTY(BlueprintAssignable)
+	FOnDungeonPhaseChanged OnDungeonPhaseChanged;
 
+protected:
+
+	UPROPERTY(EditDefaultsOnly, Category = "Match Flow")
+	float CountdownLength = 10.0f;
+
+private:
+
+	bool bInitialized = false;
+	UPROPERTY(ReplicatedUsing=OnRep_DungeonPhase)
+	FDungeonPhase DungeonPhase;
+	UFUNCTION()
+	void OnRep_DungeonPhase(const FDungeonPhase& OldPhase);
+	
+	void StartCountdown();
+	FTimerHandle CountdownHandle;
+	void EndCountdown();
+	void MoveToCompletedState();
+
+	//Dungeon Requirements
+
+public:
+
+	static const FGameplayTag GenericBossTag;
+	UFUNCTION(BlueprintPure)
+	FDungeonRequirements GetDungeonRequirements() const { return DungeonRequirements; }
 	UFUNCTION(BlueprintPure)
 	float GetDungeonTimeLimit() const { return DungeonRequirements.TimeLimit; }
 	UFUNCTION(BlueprintPure)
 	int32 GetDungeonKillCount() const { return DungeonRequirements.KillCountRequirement; }
 	UFUNCTION(BlueprintPure)
 	void GetBossKillRequirements(FGameplayTagContainer& OutTags) const { OutTags = DungeonRequirements.BossKillTags; }
-	UFUNCTION(BlueprintPure)
-	FDungeonRequirements GetDungeonRequirements() const { return DungeonRequirements; }
+	
+protected:
 
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
-	void ReportTrashDeath(const int32 CountToAdd = 1);
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
-	void ReportBossDeath(const FGameplayTag BossTag);
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
-	void ReportPlayerDeath();
+	UPROPERTY(EditDefaultsOnly, Category = "Dungeon Requirements")
+	TMap<FString, FDungeonRequirements> DungeonInfoTable;
+
+private:
+
+	FDungeonRequirements DungeonRequirements;
+
+	//Dungeon Progress
+
+public:
+
+	UFUNCTION(BlueprintPure)
+	FDungeonProgress GetDungeonProgress() const { return DungeonProgress; }
 	UFUNCTION(BlueprintPure)
 	int32 GetCurrentKillCount() const { return DungeonProgress.KillCount; }
 	UFUNCTION(BlueprintPure)
@@ -152,15 +216,11 @@ public:
 	UFUNCTION(BlueprintPure)
 	int32 GetDeathCount() const { return DungeonProgress.DeathCount; }
 	UFUNCTION(BlueprintPure)
-	float GetDeathPenalty() const { return DeathPenaltySeconds; }
-	UFUNCTION(BlueprintPure)
 	float GetCurrentPenaltyTime() const { return DeathPenaltySeconds * DungeonProgress.DeathCount; }
 	UFUNCTION(BlueprintPure)
 	bool IsDungeonDepleted() const { return DungeonProgress.bDepleted; }
 	UFUNCTION(BlueprintPure)
 	float GetDungeonCompletionTime() const { return DungeonProgress.CompletionTime; }
-	UFUNCTION(BlueprintPure)
-	FDungeonProgress GetDungeonProgress() const { return DungeonProgress; }
 	UPROPERTY(BlueprintAssignable)
 	FOnBossKilled OnBossKilled;
 	UPROPERTY(BlueprintAssignable)
@@ -168,41 +228,23 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnCountChanged OnDeathCountChanged;
 	UPROPERTY(BlueprintAssignable)
-	FOnDungeonCompleted OnDungeonCompleted;
-	UPROPERTY(BlueprintAssignable)
 	FOnDungeonDepleted OnDungeonDepleted;
-
+	UPROPERTY(BlueprintAssignable)
+	FOnDungeonCompleted OnDungeonCompleted;
+	
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
+	void ReportTrashDeath(const int32 CountToAdd = 1);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
+	void ReportBossDeath(const FGameplayTag BossTag);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
+	void ReportPlayerDeath();
+	
 protected:
 
-	UPROPERTY(EditDefaultsOnly)
-	TMap<FString, FDungeonRequirements> DungeonInfoTable;
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category = "Dungeon Progress")
 	float DeathPenaltySeconds = 5.0f;
 
 private:
-
-	float WorldTime = 0.0f;
-
-	UPROPERTY(ReplicatedUsing=OnRep_DungeonPhase)
-	FDungeonPhase DungeonPhase;
-	UFUNCTION()
-	void OnRep_DungeonPhase(const FDungeonPhase& OldPhase);
-	
-	UPROPERTY(ReplicatedUsing=OnRep_ReadyPlayers)
-	TArray<ASaiyoraPlayerCharacter*> ReadyPlayers;
-	UFUNCTION()
-	void OnRep_ReadyPlayers(const TArray<ASaiyoraPlayerCharacter*>& PreviousPlayers);
-	UPROPERTY()
-	TArray<ASaiyoraPlayerCharacter*> GroupPlayers;
-
-	static const float CountdownLength;
-	void StartCountdown();
-	FTimerHandle CountdownHandle;
-	void EndCountdown();
-	void MoveToCompletedState();
-	
-	bool bInitialized = false;
-	FDungeonRequirements DungeonRequirements;
 
 	UPROPERTY(ReplicatedUsing=OnRep_DungeonProgress)
 	FDungeonProgress DungeonProgress;
@@ -211,7 +253,4 @@ private:
 	void OnUpdatedProgress(const FDungeonProgress& PreviousProgress);
 	FTimerHandle DepletionHandle;
 	void DepleteDungeon();
-
-	UPROPERTY()
-	class ASaiyoraGameMode* GameModeRef;
 };

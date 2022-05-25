@@ -1,5 +1,6 @@
 #include "HealthAttributeSet.h"
 #include "Net/UnrealNetwork.h"
+#include "SaiyoraGAS/AbilitySystem/Components/SaiyoraAbilityComponent.h"
 
 UHealthAttributeSet::UHealthAttributeSet()
 {
@@ -20,6 +21,13 @@ void UHealthAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME_CONDITION_NOTIFY(UHealthAttributeSet, Health, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UHealthAttributeSet, MaxHealth, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UHealthAttributeSet, Absorb, COND_None, REPNOTIFY_Always);
+}
+
+void UHealthAttributeSet::SetupDelegates()
+{
+	SETUP_NOTIFIER(UHealthAttributeSet, Health);
+	SETUP_NOTIFIER(UHealthAttributeSet, MaxHealth);
+	SETUP_NOTIFIER(UHealthAttributeSet, Absorb);
 }
 
 void UHealthAttributeSet::ClampAttributes(const FGameplayAttribute& Attribute, float& NewValue) const

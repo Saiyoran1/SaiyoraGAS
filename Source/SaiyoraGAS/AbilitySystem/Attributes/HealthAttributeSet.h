@@ -17,18 +17,27 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Health", ReplicatedUsing = OnRep_Health)
 	FGameplayAttributeData Health;
 	ATTRIBUTE_ACCESSORS(UHealthAttributeSet, Health);
+	UPROPERTY(BlueprintAssignable, meta = (HideInDetailsView))
+	FAttributeChange OnHealthChanged;
+	ATTRIBUTE_NOTIFIER(UHealthAttributeSet, Health);
 	UFUNCTION()
 	void OnRep_Health(const FGameplayAttributeData& Old);
 
 	UPROPERTY(BlueprintReadOnly, Category = "Health", ReplicatedUsing = OnRep_MaxHealth)
 	FGameplayAttributeData MaxHealth;
 	ATTRIBUTE_ACCESSORS(UHealthAttributeSet, MaxHealth);
+	UPROPERTY(BlueprintAssignable, meta = (HideInDetailsView))
+	FAttributeChange OnMaxHealthChanged;
+	ATTRIBUTE_NOTIFIER(UHealthAttributeSet, MaxHealth);
 	UFUNCTION()
 	void OnRep_MaxHealth(const FGameplayAttributeData& Old);
 
 	UPROPERTY(BlueprintReadOnly, Category = "Health", ReplicatedUsing = OnRep_Absorb)
 	FGameplayAttributeData Absorb;
 	ATTRIBUTE_ACCESSORS(UHealthAttributeSet, Absorb);
+	UPROPERTY(BlueprintAssignable, meta = (HideInDetailsView))
+	FAttributeChange OnAbsorbChanged;
+	ATTRIBUTE_NOTIFIER(UHealthAttributeSet, Absorb);
 	UFUNCTION()
 	void OnRep_Absorb(const FGameplayAttributeData& Old);
 
@@ -52,7 +61,9 @@ public:
 	FGameplayAttributeData HealingTakenAddon;
 	ATTRIBUTE_ACCESSORS(UHealthAttributeSet, HealingTakenAddon);
 
-protected:
+private:
 
 	virtual void ClampAttributes(const FGameplayAttribute& Attribute, float& NewValue) const override;
+	virtual void SetupDelegates() override;
+	
 };

@@ -31,7 +31,7 @@ void USaiyoraAbilityComponent::InitAttributes(
 	{
 		for (const TTuple<TSubclassOf<USaiyoraAttributeSet>, TSubclassOf<USaiyoraGameplayEffect>>& AttributeSet : Attributes)
 		{
-			GetOrCreateAttributeSubobject(AttributeSet.Key);
+			const UAttributeSet* NewSet = GetOrCreateAttributeSubobject(AttributeSet.Key);
 			if (AttributeSet.Value)
 			{
 				FGameplayEffectContextHandle EffectContext = MakeEffectContext();
@@ -41,6 +41,11 @@ void USaiyoraAbilityComponent::InitAttributes(
 				{
 					ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
 				}
+			}
+			USaiyoraAttributeSet* SaiyoraSet = const_cast<USaiyoraAttributeSet*>(Cast<USaiyoraAttributeSet>(NewSet));
+			if (SaiyoraSet)
+			{
+				SaiyoraSet->SetOwningComponent(this);
 			}
 		}
 	}

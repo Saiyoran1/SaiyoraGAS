@@ -41,7 +41,7 @@ void UAbsorbExecution::Execute_Implementation(const FGameplayEffectCustomExecuti
 	Super::Execute_Implementation(ExecutionParams, OutExecutionOutput);
 
 	const FGameplayEffectSpec& Spec = ExecutionParams.GetOwningSpec();
-	const float BaseAbsorb = FMath::Max(Spec.GetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Data.BaseAbsorb")), false, -1.0f), 0.0f);
+	const float BaseAbsorb = FMath::Max(Spec.GetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Data.BaseAbsorb"), false), false, -1.0f), 0.0f);
 	FAggregatorEvaluateParameters EvaluationParams;
 	EvaluationParams.SourceTags = Spec.CapturedSourceTags.GetAggregatedTags();
 	EvaluationParams.TargetTags = Spec.CapturedTargetTags.GetAggregatedTags();

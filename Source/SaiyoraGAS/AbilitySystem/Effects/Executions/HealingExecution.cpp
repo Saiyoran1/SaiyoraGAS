@@ -41,7 +41,7 @@ void UHealingExecution::Execute_Implementation(const FGameplayEffectCustomExecut
 	Super::Execute_Implementation(ExecutionParams, OutExecutionOutput);
 
 	const FGameplayEffectSpec& Spec = ExecutionParams.GetOwningSpec();
-	const float BaseHealing = FMath::Max(Spec.GetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Data.BaseHealing")), false, -1.0f), 0.0f);
+	const float BaseHealing = FMath::Max(Spec.GetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Data.BaseHealing"), false), false, -1.0f), 0.0f);
 	FAggregatorEvaluateParameters EvaluationParams;
 	EvaluationParams.SourceTags = Spec.CapturedSourceTags.GetAggregatedTags();
 	EvaluationParams.TargetTags = Spec.CapturedTargetTags.GetAggregatedTags();

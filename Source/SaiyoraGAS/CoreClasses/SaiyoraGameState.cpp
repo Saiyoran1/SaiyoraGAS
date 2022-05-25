@@ -3,7 +3,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
-const float ASaiyoraGameState::CountdownLength = 10.0f;
 const FGameplayTag ASaiyoraGameState::GenericBossTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Boss")), false);
 
 #pragma region Boilerplate
@@ -117,26 +116,9 @@ void ASaiyoraGameState::InitDungeonState()
 	}
 	const FDungeonPhase OldPhase = DungeonPhase;
 	DungeonPhase.DungeonState = EDungeonState::WaitingToStart;
+	DungeonPhase.PhaseStartTime = WorldTime;
+	DungeonPhase.PhaseEndTime = 0.0f;
 	OnRep_DungeonPhase(OldPhase);
-}
-
-float ASaiyoraGameState::GetElapsedPhaseTime() const
-{
-	switch (DungeonPhase.DungeonState)
-	{
-		case EDungeonState::None :
-			return 0.0f;
-		case EDungeonState::WaitingToStart :
-			return 0.0f;
-		case EDungeonState::Countdown :
-			return WorldTime - DungeonPhase.PhaseStartTime;
-		case EDungeonState::InProgress :
-			return (WorldTime - DungeonPhase.PhaseStartTime) + (DeathPenaltySeconds * DungeonProgress.DeathCount);
-		case EDungeonState::Completed :
-			return WorldTime - DungeonProgress.CompletionTime;
-		default :
-			return 0.0f;
-	}
 }
 
 void ASaiyoraGameState::StartCountdown()
@@ -207,6 +189,25 @@ void ASaiyoraGameState::OnRep_DungeonPhase(const FDungeonPhase& OldPhase)
 		bInitialized = true;
 	}
 	OnDungeonPhaseChanged.Broadcast(OldPhase, DungeonPhase);
+}
+
+float ASaiyoraGameState::GetElapsedDungeonTime() const
+{
+	switch (DungeonPhase.DungeonState)
+	{
+	case EDungeonState::None :
+		return 0.0f;
+	case EDungeonState::WaitingToStart :
+		return 0.0f;
+	case EDungeonState::Countdown :
+		return 0.0f;
+	case EDungeonState::InProgress :
+		return (WorldTime - DungeonPhase.PhaseStartTime) + (DeathPenaltySeconds * DungeonProgress.DeathCount);
+	case EDungeonState::Completed :
+		return DungeonProgress.CompletionTime;
+	default :
+		return 0.0f;
+	}
 }
 
 #pragma endregion
@@ -280,6 +281,7 @@ void ASaiyoraGameState::DepleteDungeon()
 
 void ASaiyoraGameState::OnUpdatedProgress(const FDungeonProgress& PreviousProgress)
 {
+	OnRep_DungeonProgress(PreviousProgress);
 	if (PreviousProgress.CompletionTime == 0.0f && DungeonProgress.KillCount >= DungeonRequirements.KillCountRequirement)
 	{
 		TArray<FGameplayTag> BossTags;
@@ -297,7 +299,6 @@ void ASaiyoraGameState::OnUpdatedProgress(const FDungeonProgress& PreviousProgre
 			MoveToCompletedState();
 		}
 	}
-	OnRep_DungeonProgress(PreviousProgress);
 }
 
 void ASaiyoraGameState::OnRep_DungeonProgress(const FDungeonProgress& PreviousProgress)
