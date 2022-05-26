@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "GameplayTagContainer.h"
+#include "Engine/NetSerialization.h"
 #include "DamageStructs.generated.h"
 
 USTRUCT(BlueprintType)
@@ -7,16 +8,16 @@ struct FDamagingEvent
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
-	class USaiyoraAbilityComponent* Attacker;
-	UPROPERTY()
-	class USaiyoraAbilityComponent* Target;
-	UPROPERTY()
-	FGameplayTag HitStyle;
-	UPROPERTY()
-	FGameplayTag DamageType;
-	UPROPERTY()
-	float Damage;
+	UPROPERTY(BlueprintReadOnly)
+	class USaiyoraAbilityComponent* Attacker = nullptr;
+	UPROPERTY(BlueprintReadOnly)
+	class USaiyoraAbilityComponent* Target = nullptr;
+	UPROPERTY(BlueprintReadOnly)
+	FGameplayTag HitStyle = FGameplayTag::EmptyTag;
+	UPROPERTY(BlueprintReadOnly)
+	FGameplayTag DamageType = FGameplayTag::EmptyTag;
+	UPROPERTY(BlueprintReadOnly)
+	float Damage = 0.0f;
 };
 
 USTRUCT()
@@ -40,9 +41,9 @@ struct FDamagingEventArray : public FFastArraySerializer
 	UPROPERTY()
 	TArray<FDamagingEventItem> Items;
 	UPROPERTY(NotReplicated)
-	class UHealthAttributeSet* OwningHealthSet;
+	class UHealthAttributeSet* OwningHealthSet = nullptr;
 	UPROPERTY(NotReplicated)
-	class UDamageAttributeSet* OwningDamageSet;
+	class UDamageAttributeSet* OwningDamageSet = nullptr;
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{

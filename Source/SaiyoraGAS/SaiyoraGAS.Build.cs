@@ -9,7 +9,7 @@ public class SaiyoraGAS : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicDependencyModuleNames.AddRange(new string[]
-			{ "Core", "CoreUObject", "Engine", "InputCore", "OnlineSubsystem", "OnlineSubsystemSteam", "GameplayTags", "GameplayTasks", "GameplayAbilities", "Networking"});
+			{ "Core", "CoreUObject", "Engine", "InputCore", "OnlineSubsystem", "OnlineSubsystemSteam", "GameplayTags", "GameplayTasks", "GameplayAbilities", "NetCore" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "MultiplayerSessions" });
 
