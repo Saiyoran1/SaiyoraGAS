@@ -41,6 +41,9 @@ public:
 
 private:
 
+	static const float DamageDoneNotifyWindow;
+	static const int32 MaxSavedDamageDoneEvents;
+
 	virtual void SetupDelegates() override;
 
 	UPROPERTY(Replicated)

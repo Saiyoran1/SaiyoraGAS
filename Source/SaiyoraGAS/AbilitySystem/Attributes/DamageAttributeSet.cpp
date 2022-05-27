@@ -2,6 +2,9 @@
 #include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
 
+const float UDamageAttributeSet::DamageDoneNotifyWindow = 1.0f;
+const int32 UDamageAttributeSet::MaxSavedDamageDoneEvents = 100;
+
 UDamageAttributeSet::UDamageAttributeSet()
 {
 	DamageDoneMultiplier = 1.0f;
@@ -24,6 +27,17 @@ void UDamageAttributeSet::SetupDelegates()
 
 void UDamageAttributeSet::AuthNotifyDamageDoneEvent(const FDamagingEvent& DamageEvent)
 {
+	if (DamageDoneEvents.Items.Num() > MaxSavedDamageDoneEvents)
+	{
+		for (int i = DamageDoneEvents.Items.Num() - 1; i >= 0; i--)
+		{
+			if (DamageDoneEvents.Items[i].Time + DamageDoneNotifyWindow < GetWorld()->GetGameState()->GetServerWorldTimeSeconds())
+			{
+				DamageDoneEvents.Items.RemoveAt(i);
+				DamageDoneEvents.MarkArrayDirty();
+			}
+		}
+	}
 	FDamagingEventItem TimestampedEvent;
 	TimestampedEvent.DamageEvent = DamageEvent;
 	TimestampedEvent.Time = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
@@ -33,6 +47,9 @@ void UDamageAttributeSet::AuthNotifyDamageDoneEvent(const FDamagingEvent& Damage
 
 void UDamageAttributeSet::ReplicatedNotifyDamageDoneEvent(const FDamagingEvent& DamageEvent, const float EventTime)
 {
-	//TODO: Time filtering.
+	if (GetWorld() && GetWorld()->GetGameState() && GetWorld()->GetGameState()->GetServerWorldTimeSeconds() > EventTime + DamageDoneNotifyWindow)
+	{
+		return;
+	}
 	OnDamageDone.Broadcast(DamageEvent);
 }

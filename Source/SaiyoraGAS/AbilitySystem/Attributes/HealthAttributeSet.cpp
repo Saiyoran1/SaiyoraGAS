@@ -3,6 +3,9 @@
 #include "Net/UnrealNetwork.h"
 #include "SaiyoraGAS/AbilitySystem/Components/SaiyoraAbilityComponent.h"
 
+const float UHealthAttributeSet::DamageTakenNotifyWindow = 1.0f;
+const int32 UHealthAttributeSet::MaxSavedDamageTakenEvents = 100;
+
 UHealthAttributeSet::UHealthAttributeSet()
 {
 	MaxHealth = 100.0f;
@@ -61,6 +64,17 @@ void UHealthAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribut
 
 void UHealthAttributeSet::AuthNotifyDamageTakenEvent(const FDamagingEvent& DamageEvent)
 {
+	if (DamageTakenEvents.Items.Num() > MaxSavedDamageTakenEvents)
+	{
+		for (int i = DamageTakenEvents.Items.Num() - 1; i >= 0; i--)
+		{
+			if (DamageTakenEvents.Items[i].Time + DamageTakenNotifyWindow < GetWorld()->GetGameState()->GetServerWorldTimeSeconds())
+			{
+				DamageTakenEvents.Items.RemoveAt(i);
+				DamageTakenEvents.MarkArrayDirty();
+			}
+		}
+	}
 	FDamagingEventItem TimestampedEvent;
 	TimestampedEvent.DamageEvent = DamageEvent;
 	TimestampedEvent.Time = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
@@ -70,7 +84,10 @@ void UHealthAttributeSet::AuthNotifyDamageTakenEvent(const FDamagingEvent& Damag
 
 void UHealthAttributeSet::ReplicatedNotifyDamageTakenEvent(const FDamagingEvent& DamageEvent, const float EventTime)
 {
-	//TODO: Implement time filtering.
+	if (GetWorld() && GetWorld()->GetGameState() && GetWorld()->GetGameState()->GetServerWorldTimeSeconds() > EventTime + DamageTakenNotifyWindow)
+	{
+		return;
+	}
 	OnDamageTaken.Broadcast(DamageEvent);
 }
 

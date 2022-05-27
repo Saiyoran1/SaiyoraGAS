@@ -73,6 +73,9 @@ public:
 
 private:
 
+	static const float DamageTakenNotifyWindow;
+	static const int32 MaxSavedDamageTakenEvents;
+
 	virtual void ClampAttributes(const FGameplayAttribute& Attribute, float& NewValue) const override;
 	virtual void SetupDelegates() override;
 
