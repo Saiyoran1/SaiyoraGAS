@@ -51,67 +51,86 @@ void UDamageExecution::Execute_Implementation(const FGameplayEffectCustomExecuti
 	Super::Execute_Implementation(ExecutionParams, OutExecutionOutput);
 
 	const FGameplayEffectSpec& Spec = ExecutionParams.GetOwningSpec();
-	const float BaseDamage = FMath::Max(Spec.GetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Data.BaseDamage"), false), false, -1.0f), 0.0f);
+	
+	if (Spec.CapturedTargetTags.GetActorTags().HasTagExact(FGameplayTag::RequestGameplayTag(FName(TEXT("Status.DamageImmunity")))) &&
+		!Spec.CapturedSourceTags.GetSpecTags().HasTagExact(FGameplayTag::RequestGameplayTag(FName(TEXT("Damage.Special.BypassImmunity")))))
+	{
+		return;
+	}
+	
+	float Damage = FMath::Max(Spec.GetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Data.BaseDamage"), false), false, -1.0f), 0.0f);
 	FAggregatorEvaluateParameters EvaluationParams;
 	EvaluationParams.SourceTags = Spec.CapturedSourceTags.GetAggregatedTags();
 	EvaluationParams.TargetTags = Spec.CapturedTargetTags.GetAggregatedTags();
 	
-	float PlaneDamageDoneModifier = 1.0f;
-	float PlaneDamageTakenModifier = 1.0f;
-	FGameplayTag SourcePlane = FGameplayTag::EmptyTag;
-	for (const FGameplayTag& Tag : Spec.CapturedSourceTags.GetActorTags())
+	if (!Spec.CapturedSourceTags.GetSpecTags().HasTagExact(FGameplayTag::RequestGameplayTag(FName(TEXT("Damage.Special.BypassModifiers")))))
 	{
-		if (Tag.MatchesTag(FGameplayTag::RequestGameplayTag(FName("Plane"), false)) && !Tag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Plane"), false)))
-		{
-			SourcePlane = Tag;
-			break;
-		}
-	}
-	if (SourcePlane.IsValid())
-	{
-		FGameplayTag TargetPlane = FGameplayTag::EmptyTag;
-		for (const FGameplayTag& Tag : Spec.CapturedTargetTags.GetActorTags())
+		float PlaneDamageDoneModifier = 1.0f;
+		float PlaneDamageTakenModifier = 1.0f;
+		FGameplayTag SourcePlane = FGameplayTag::EmptyTag;
+		for (const FGameplayTag& Tag : Spec.CapturedSourceTags.GetActorTags())
 		{
 			if (Tag.MatchesTag(FGameplayTag::RequestGameplayTag(FName("Plane"), false)) && !Tag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Plane"), false)))
 			{
-				TargetPlane = Tag;
+				SourcePlane = Tag;
 				break;
 			}
 		}
-		if (TargetPlane.IsValid() && TargetPlane != SourcePlane)
+		if (SourcePlane.IsValid())
 		{
-			ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(GetDamageCapture().CrossPlaneDamageDoneModDef, EvaluationParams, PlaneDamageDoneModifier);
-			ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(GetDamageCapture().CrossPlaneDamageTakenModDef, EvaluationParams, PlaneDamageTakenModifier);
+			FGameplayTag TargetPlane = FGameplayTag::EmptyTag;
+			for (const FGameplayTag& Tag : Spec.CapturedTargetTags.GetActorTags())
+			{
+				if (Tag.MatchesTag(FGameplayTag::RequestGameplayTag(FName("Plane"), false)) && !Tag.MatchesTagExact(FGameplayTag::RequestGameplayTag(FName("Plane"), false)))
+				{	
+					TargetPlane = Tag;
+					break;
+				}
+			}
+			if (TargetPlane.IsValid() && TargetPlane != SourcePlane)
+			{
+				ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(GetDamageCapture().CrossPlaneDamageDoneModDef, EvaluationParams, PlaneDamageDoneModifier);
+				ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(GetDamageCapture().CrossPlaneDamageTakenModDef, EvaluationParams, PlaneDamageTakenModifier);
+			}
 		}
-	}
 
-	//TODO: Hitbox multiplier?
+		//TODO: Hitbox multiplier?
 	
-	float OutMultiplier = 1.0f;
-	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(GetDamageCapture().DamageDoneMultiplierDef, EvaluationParams, OutMultiplier);
-	float OutAddon = 0.0f;
-	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(GetDamageCapture().DamageDoneAddonDef, EvaluationParams, OutAddon);
-	const float OutgoingDamage = FMath::Max(BaseDamage * PlaneDamageDoneModifier * OutMultiplier + OutAddon, 0.0f);
+		float OutMultiplier = 1.0f;
+		ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(GetDamageCapture().DamageDoneMultiplierDef, EvaluationParams, OutMultiplier);
+		float OutAddon = 0.0f;
+		ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(GetDamageCapture().DamageDoneAddonDef, EvaluationParams, OutAddon);
+		Damage = FMath::Max(Damage * PlaneDamageDoneModifier * OutMultiplier + OutAddon, 0.0f);
 	
-	float InMultiplier = 1.0f;
-	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(GetDamageCapture().DamageTakenMultiplierDef, EvaluationParams, InMultiplier);
-	float InAddon = 0.0f;
-	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(GetDamageCapture().DamageTakenAddonDef, EvaluationParams, InAddon);
-	float IncomingDamage = FMath::Max(OutgoingDamage * PlaneDamageTakenModifier * InMultiplier + InAddon, 0.0f);
+		float InMultiplier = 1.0f;
+		ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(GetDamageCapture().DamageTakenMultiplierDef, EvaluationParams, InMultiplier);
+		float InAddon = 0.0f;
+		ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(GetDamageCapture().DamageTakenAddonDef, EvaluationParams, InAddon);
+		Damage = FMath::Max(Damage * PlaneDamageTakenModifier * InMultiplier + InAddon, 0.0f);
+	}
 	
-	float Absorb = 0.0f;
-	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(GetDamageCapture().AbsorbDef, EvaluationParams, Absorb);
-	if (IncomingDamage > Absorb)
+
+	if (Spec.CapturedSourceTags.GetSpecTags().HasTagExact(FGameplayTag::RequestGameplayTag(FName(TEXT("Damage.Special.BypassAbsorb")))))
 	{
-		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(GetDamageCapture().AbsorbProperty, EGameplayModOp::Override, 0.0f));
-		IncomingDamage -= Absorb;
-		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(GetDamageCapture().HealthProperty, EGameplayModOp::Additive, -IncomingDamage));
+		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(GetDamageCapture().HealthProperty, EGameplayModOp::Additive, -Damage));
 	}
 	else
 	{
-		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(GetDamageCapture().AbsorbProperty, EGameplayModOp::Additive, -IncomingDamage));
+		float Absorb = 0.0f;
+		ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(GetDamageCapture().AbsorbDef, EvaluationParams, Absorb);
+		if (Damage > Absorb)
+		{
+			OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(GetDamageCapture().AbsorbProperty, EGameplayModOp::Override, 0.0f));
+			Damage -= Absorb;
+			OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(GetDamageCapture().HealthProperty, EGameplayModOp::Additive, -Damage));
+		}
+		else
+		{
+			OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(GetDamageCapture().AbsorbProperty, EGameplayModOp::Additive, -Damage));
+		}
 	}
-	if (IncomingDamage > 0.0f)
+	
+	if (Damage > 0.0f)
 	{
 		UHealthAttributeSet* TargetHealthSet = nullptr;
 		USaiyoraAbilityComponent* TargetComponent = Cast<USaiyoraAbilityComponent>(ExecutionParams.GetTargetAbilitySystemComponent());
@@ -142,7 +161,7 @@ void UDamageExecution::Execute_Implementation(const FGameplayEffectCustomExecuti
 			{
 				DamageEvent.DamageType = FGameplayTag::RequestGameplayTag(FName(TEXT("Damage.Type.Default")), false);
 			}
-			DamageEvent.Damage = IncomingDamage;
+			DamageEvent.Damage = Damage;
 			if (TargetHealthSet)
 			{
 				TargetHealthSet->AuthNotifyDamageTakenEvent(DamageEvent);
@@ -150,7 +169,7 @@ void UDamageExecution::Execute_Implementation(const FGameplayEffectCustomExecuti
 			if (SourceDamageSet)
 			{
 				SourceDamageSet->AuthNotifyDamageDoneEvent(DamageEvent);
-				if (TargetHealthSet && IncomingDamage > TargetHealthSet->Health.GetCurrentValue())
+				if (TargetHealthSet && Damage > TargetHealthSet->Health.GetCurrentValue())
 				{
 					SourceDamageSet->AuthNotifyKillingBlowEvent(TargetComponent);
 				}
