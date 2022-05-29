@@ -1,6 +1,9 @@
 #include "HealthAttributeSet.h"
+#include "GameplayEffectExtension.h"
 #include "GameFramework/GameStateBase.h"
+#include "DamageAttributeSet.h"
 #include "Net/UnrealNetwork.h"
+#include "SaiyoraGAS/AbilitySystem/Abilities/CoreAbilities/DeathAbility.h"
 #include "SaiyoraGAS/AbilitySystem/Components/SaiyoraAbilityComponent.h"
 
 const float UHealthAttributeSet::DamageTakenNotifyWindow = 1.0f;

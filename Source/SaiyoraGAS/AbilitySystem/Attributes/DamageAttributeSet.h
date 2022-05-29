@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "SaiyoraAttributeSet.h"
 #include "EventStructs/DamageStructs.h"
+#include "SaiyoraGAS/AbilitySystem/Components/SaiyoraAbilityComponent.h"
 #include "DamageAttributeSet.generated.h"
 
 UCLASS()
@@ -34,18 +35,27 @@ public:
 	FGameplayAttributeData HealingDoneAddon;
 	ATTRIBUTE_ACCESSORS(UDamageAttributeSet, HealingDoneAddon);
 
-	void AuthNotifyDamageDoneEvent(const struct FDamagingEvent& DamageEvent);
-	void ReplicatedNotifyDamageDoneEvent(const struct FDamagingEvent& DamageEvent, const float EventTime);
+	void AuthNotifyDamageDoneEvent(const FDamagingEvent& DamageEvent);
+	void ReplicatedNotifyDamageDoneEvent(const FDamagingEvent& DamageEvent, const float EventTime);
 	UPROPERTY(BlueprintAssignable)
 	FOnDamage OnDamageDone;
+
+	void AuthNotifyKillingBlowEvent(USaiyoraAbilityComponent* Target);
+	void ReplicatedNotifyKillingBlowEvent(USaiyoraAbilityComponent* Target, const float EventTime);
+	UPROPERTY(BlueprintAssignable)
+	FOnKillingBlow OnKillingBlow;
 
 private:
 
 	static const float DamageDoneNotifyWindow;
 	static const int32 MaxSavedDamageDoneEvents;
+	static const float KillingBlowNotifyWindow;
+	static const int32 MaxSavedKillingBlows;
 
 	virtual void SetupDelegates() override;
 
 	UPROPERTY(Replicated)
 	FDamagingEventArray DamageDoneEvents;
+	UPROPERTY(Replicated)
+	FKillingBlowArray KillingBlows;
 };

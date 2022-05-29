@@ -19,3 +19,18 @@ void FDamagingEventArray::OnAdded(const FDamagingEvent& NewEvent, const float Ev
 		OwningDamageSet->ReplicatedNotifyDamageDoneEvent(NewEvent, EventTime);
 	}
 }
+
+void FKillingBlowItem::PostReplicatedAdd(const FKillingBlowArray& InArraySerializer)
+{
+	InArraySerializer.OnAdded(Target, Time);
+}
+
+void FKillingBlowArray::OnAdded(USaiyoraAbilityComponent* Target, const float EventTime) const
+{
+	if (OwningDamageSet)
+	{
+		OwningDamageSet->ReplicatedNotifyKillingBlowEvent(Target, EventTime);
+	}
+}
+
+

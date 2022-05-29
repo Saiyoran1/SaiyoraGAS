@@ -150,7 +150,12 @@ void UDamageExecution::Execute_Implementation(const FGameplayEffectCustomExecuti
 			if (SourceDamageSet)
 			{
 				SourceDamageSet->AuthNotifyDamageDoneEvent(DamageEvent);
+				if (TargetHealthSet && IncomingDamage > TargetHealthSet->Health.GetCurrentValue())
+				{
+					SourceDamageSet->AuthNotifyKillingBlowEvent(TargetComponent);
+				}
 			}
 		}
 	}
+	
 }

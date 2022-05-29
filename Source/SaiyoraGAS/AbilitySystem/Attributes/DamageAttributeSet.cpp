@@ -4,6 +4,8 @@
 
 const float UDamageAttributeSet::DamageDoneNotifyWindow = 1.0f;
 const int32 UDamageAttributeSet::MaxSavedDamageDoneEvents = 100;
+const float UDamageAttributeSet::KillingBlowNotifyWindow = 5.0f;
+const int32 UDamageAttributeSet::MaxSavedKillingBlows = 20;
 
 UDamageAttributeSet::UDamageAttributeSet()
 {
@@ -18,11 +20,13 @@ void UDamageAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UDamageAttributeSet, DamageDoneEvents);
+	DOREPLIFETIME(UDamageAttributeSet, KillingBlows);
 }
 
 void UDamageAttributeSet::SetupDelegates()
 {
 	DamageDoneEvents.OwningDamageSet = this;
+	KillingBlows.OwningDamageSet = this;
 }
 
 void UDamageAttributeSet::AuthNotifyDamageDoneEvent(const FDamagingEvent& DamageEvent)
@@ -52,4 +56,33 @@ void UDamageAttributeSet::ReplicatedNotifyDamageDoneEvent(const FDamagingEvent& 
 		return;
 	}
 	OnDamageDone.Broadcast(DamageEvent);
+}
+
+void UDamageAttributeSet::AuthNotifyKillingBlowEvent(USaiyoraAbilityComponent* Target)
+{
+	if (KillingBlows.Items.Num() > MaxSavedKillingBlows)
+	{
+		for (int i = KillingBlows.Items.Num() - 1; i >= 0; i--)
+		{
+			if (KillingBlows.Items[i].Time + KillingBlowNotifyWindow < GetWorld()->GetGameState()->GetServerWorldTimeSeconds())
+			{
+				KillingBlows.Items.RemoveAt(i);
+				KillingBlows.MarkArrayDirty();
+			}
+		}
+	}
+	FKillingBlowItem TimestampedEvent;
+	TimestampedEvent.Target = Target;
+	TimestampedEvent.Time = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+	KillingBlows.MarkItemDirty(KillingBlows.Items.Add_GetRef(TimestampedEvent));
+	OnKillingBlow.Broadcast(Target);
+}
+
+void UDamageAttributeSet::ReplicatedNotifyKillingBlowEvent(USaiyoraAbilityComponent* Target, const float EventTime)
+{
+	if (GetWorld() && GetWorld()->GetGameState() && GetWorld()->GetGameState()->GetServerWorldTimeSeconds() > EventTime + KillingBlowNotifyWindow)
+	{
+		return;
+	}
+	OnKillingBlow.Broadcast(Target);
 }

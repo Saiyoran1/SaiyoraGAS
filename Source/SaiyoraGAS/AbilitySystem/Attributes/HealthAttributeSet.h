@@ -81,4 +81,6 @@ private:
 
 	UPROPERTY(Replicated)
 	FDamagingEventArray DamageTakenEvents;
+
+	FGameplayAbilitySpecHandle DeathAbilityHandle;
 };
