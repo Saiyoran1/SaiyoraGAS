@@ -7,4 +7,5 @@ UDamageAttributeSet::UDamageAttributeSet()
 	HealingDoneMultiplier = 1.0f;
 	HealingDoneAddon = 0.0f;
 	CrossPlaneDamageDoneMod = 1.0f;
+	CrossPlaneHealingDoneMod = 1.0f;
 }

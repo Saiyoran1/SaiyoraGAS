@@ -16,6 +16,7 @@ UHealthAttributeSet::UHealthAttributeSet()
 	HealingTakenMultiplier = 1.0f;
 	HealingTakenAddon = 0.0f;
 	CrossPlaneDamageTakenMod = 1.0f;
+	CrossPlaneHealingTakenMod = 1.0f;
 }
 
 void UHealthAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

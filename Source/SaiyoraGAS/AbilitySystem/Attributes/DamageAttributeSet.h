@@ -33,4 +33,8 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Healing")
 	FGameplayAttributeData HealingDoneAddon;
 	ATTRIBUTE_ACCESSORS(UDamageAttributeSet, HealingDoneAddon);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Healing")
+	FGameplayAttributeData CrossPlaneHealingDoneMod;
+	ATTRIBUTE_ACCESSORS(UDamageAttributeSet, CrossPlaneHealingDoneMod);
 };

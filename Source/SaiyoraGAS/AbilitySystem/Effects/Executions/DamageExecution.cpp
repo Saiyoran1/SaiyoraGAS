@@ -137,29 +137,30 @@ void UDamageExecution::Execute_Implementation(const FGameplayEffectCustomExecuti
 		UHealthComponent* SourceHealthComp = ExecutionParams.GetSourceAbilitySystemComponent()->GetOwner()->FindComponentByClass<UHealthComponent>();
 		if (TargetHealthComp || SourceHealthComp)
 		{
-			FDamagingEvent DamageEvent;
+			FHealthEvent DamageEvent;
+			DamageEvent.EventType = EHealthEventType::Damage;
 			DamageEvent.Attacker = Cast<USaiyoraAbilityComponent>(ExecutionParams.GetSourceAbilitySystemComponent());
 			DamageEvent.Target = Cast<USaiyoraAbilityComponent>(ExecutionParams.GetSourceAbilitySystemComponent());
-			const FGameplayTagContainer HitStyleFilter = FGameplayTagContainer(FGameplayTag::RequestGameplayTag(FName(TEXT("Damage.HitStyle")), false));
+			const FGameplayTagContainer HitStyleFilter = FGameplayTagContainer(FGameplayTag::RequestGameplayTag(FName(TEXT("Spell.HitStyle")), false));
 			DamageEvent.HitStyle = Spec.CapturedSourceTags.GetSpecTags().Filter(HitStyleFilter).First();
 			if (!DamageEvent.HitStyle.IsValid())
 			{
-				DamageEvent.HitStyle = FGameplayTag::RequestGameplayTag(FName(TEXT("Damage.HitStyle.Default")), false);
+				DamageEvent.HitStyle = FGameplayTag::RequestGameplayTag(FName(TEXT("Spell.HitStyle.Default")), false);
 			}
-			const FGameplayTagContainer DamageTypeFilter = FGameplayTagContainer(FGameplayTag::RequestGameplayTag(FName(TEXT("Damage.Type")), false));
-			DamageEvent.DamageType = Spec.CapturedSourceTags.GetSpecTags().Filter(DamageTypeFilter).First();
-			if (!DamageEvent.DamageType.IsValid())
+			const FGameplayTagContainer SpellTypeFilter = FGameplayTagContainer(FGameplayTag::RequestGameplayTag(FName(TEXT("Spell.Type")), false));
+			DamageEvent.SpellType = Spec.CapturedSourceTags.GetSpecTags().Filter(SpellTypeFilter).First();
+			if (!DamageEvent.SpellType.IsValid())
 			{
-				DamageEvent.DamageType = FGameplayTag::RequestGameplayTag(FName(TEXT("Damage.Type.Default")), false);
+				DamageEvent.SpellType = FGameplayTag::RequestGameplayTag(FName(TEXT("Spell.Type.Default")), false);
 			}
-			DamageEvent.Damage = Damage;
+			DamageEvent.Amount = Damage;
 			if (TargetHealthComp)
 			{
-				TargetHealthComp->AuthNotifyDamageTakenEvent(DamageEvent);
+				TargetHealthComp->AuthNotifyHealthEventTaken(DamageEvent);
 			}
 			if (SourceHealthComp)
 			{
-				SourceHealthComp->AuthNotifyDamageDoneEvent(DamageEvent);
+				SourceHealthComp->AuthNotifyHealthEventDone(DamageEvent);
 				if (TargetHealthComp && Damage > TargetHealthComp->GetHealth())
 				{
 					SourceHealthComp->AuthNotifyKillingBlowEvent(DamageEvent.Target);

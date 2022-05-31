@@ -3,16 +3,16 @@
 #include "SaiyoraGAS/AbilitySystem/Components/HealthComponent.h"
 
 
-void FDamagingEventItem::PostReplicatedAdd(const FDamagingEventArray& InArraySerializer)
+void FHealthEventItem::PostReplicatedAdd(const FHealthEventArray& InArraySerializer)
 {
 	InArraySerializer.OnAdded(DamageEvent, Time);
 }
 
-void FDamagingEventArray::OnAdded(const FDamagingEvent& NewEvent, const float EventTime) const
+void FHealthEventArray::OnAdded(const FHealthEvent& NewEvent, const float EventTime) const
 {
 	if (OwningHealthComp)
 	{
-		OwningHealthComp->ReplicatedNotifyDamageTakenEvent(NewEvent, EventTime);
+		OwningHealthComp->ReplicatedNotifyHealthEventTaken(NewEvent, EventTime);
 	}
 }
 

@@ -55,6 +55,10 @@ public:
 	FGameplayAttributeData HealingTakenAddon;
 	ATTRIBUTE_ACCESSORS(UHealthAttributeSet, HealingTakenAddon);
 
+	UPROPERTY(BlueprintReadOnly, Category = "Healing")
+	FGameplayAttributeData CrossPlaneHealingTakenMod;
+	ATTRIBUTE_ACCESSORS(UHealthAttributeSet, CrossPlaneHealingTakenMod);
+
 private:
 	
 	virtual void ClampAttributes(const FGameplayAttribute& Attribute, float& NewValue) const override;

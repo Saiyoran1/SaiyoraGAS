@@ -3,11 +3,22 @@
 #include "Engine/NetSerialization.h"
 #include "DamageStructs.generated.h"
 
+UENUM(BlueprintType)
+enum class EHealthEventType : uint8
+{
+	None,
+	Damage,
+	Healing,
+	Absorb
+};
+
 USTRUCT(BlueprintType)
-struct FDamagingEvent
+struct FHealthEvent
 {
 	GENERATED_BODY()
 
+	UPROPERTY(BlueprintReadOnly)
+	EHealthEventType EventType = EHealthEventType::None;
 	UPROPERTY(BlueprintReadOnly)
 	class USaiyoraAbilityComponent* Attacker = nullptr;
 	UPROPERTY(BlueprintReadOnly)
@@ -15,44 +26,44 @@ struct FDamagingEvent
 	UPROPERTY(BlueprintReadOnly)
 	FGameplayTag HitStyle = FGameplayTag::EmptyTag;
 	UPROPERTY(BlueprintReadOnly)
-	FGameplayTag DamageType = FGameplayTag::EmptyTag;
+	FGameplayTag SpellType = FGameplayTag::EmptyTag;
 	UPROPERTY(BlueprintReadOnly)
-	float Damage = 0.0f;
+	float Amount = 0.0f;
 };
 
 USTRUCT()
-struct FDamagingEventItem : public FFastArraySerializerItem
+struct FHealthEventItem : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
 	UPROPERTY()
-	FDamagingEvent DamageEvent;
+	FHealthEvent DamageEvent;
 	UPROPERTY()
 	float Time = 0.0f;
 
-	void PostReplicatedAdd(const struct FDamagingEventArray& InArraySerializer);
+	void PostReplicatedAdd(const struct FHealthEventArray& InArraySerializer);
 };
 
 USTRUCT()
-struct FDamagingEventArray : public FFastArraySerializer
+struct FHealthEventArray : public FFastArraySerializer
 {
 	GENERATED_BODY()
 
 	UPROPERTY()
-	TArray<FDamagingEventItem> Items;
+	TArray<FHealthEventItem> Items;
 	UPROPERTY(NotReplicated)
 	class UHealthComponent* OwningHealthComp = nullptr;
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
-		return FFastArraySerializer::FastArrayDeltaSerialize<FDamagingEventItem, FDamagingEventArray>(Items, DeltaParms, *this);
+		return FFastArraySerializer::FastArrayDeltaSerialize<FHealthEventItem, FHealthEventArray>(Items, DeltaParms, *this);
 	}
 
-	void OnAdded(const FDamagingEvent& NewEvent, const float EventTime) const;
+	void OnAdded(const FHealthEvent& NewEvent, const float EventTime) const;
 };
 
 template<>
-struct TStructOpsTypeTraits<FDamagingEventArray> : public TStructOpsTypeTraitsBase2<FDamagingEventArray>
+struct TStructOpsTypeTraits<FHealthEventArray> : public TStructOpsTypeTraitsBase2<FHealthEventArray>
 {
 	enum
 	{
@@ -100,7 +111,7 @@ struct TStructOpsTypeTraits<FKillingBlowArray> : public TStructOpsTypeTraitsBase
 	};
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDamage, const FDamagingEvent&, DamageEvent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthEvent, const FHealthEvent&, HealthEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnKillingBlow, const USaiyoraAbilityComponent*, Target);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLifeStatusChanged, const bool, bAlive);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, const float, PreviousHealth, const float, NewHealth);

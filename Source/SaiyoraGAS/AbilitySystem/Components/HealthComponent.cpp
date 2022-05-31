@@ -5,8 +5,8 @@
 #include "SaiyoraGAS/AbilitySystem/Attributes/DamageAttributeSet.h"
 #include "SaiyoraGAS/AbilitySystem/Attributes/HealthAttributeSet.h"
 
-const float UHealthComponent::DAMAGEEVENTNOTIFYWINDOW = 1.0f;
-const int32 UHealthComponent::MAXSAVEDDAMAGEEVENTS = 100;
+const float UHealthComponent::HEALTHEVENTNOTIFYWINDOW = 1.0f;
+const int32 UHealthComponent::MAXSAVEDHEALTHEVENTS = 100;
 const float UHealthComponent::KILLINGBLOWNOTIFYWINDOW = 5.0f;
 const int32 UHealthComponent::MAXSAVEDKILLINGBLOWS = 100;
 
@@ -19,8 +19,8 @@ void UHealthComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UHealthComponent, bIsAlive);
-	DOREPLIFETIME(UHealthComponent, DamageTakenEvents);
-	DOREPLIFETIME(UHealthComponent, DamageDoneEvents);
+	DOREPLIFETIME(UHealthComponent, HealthEventsTaken);
+	DOREPLIFETIME(UHealthComponent, HealthEventsDone);
 	DOREPLIFETIME(UHealthComponent, KillingBlows);
 }
 
@@ -47,8 +47,8 @@ void UHealthComponent::PostInitialize()
 		InitialValuesMap.Add(UDamageAttributeSet::StaticClass(), FAttributeInitialValues());
 		GetAbilityComponent()->InitAttributes(InitialValuesMap);
 	}
-	DamageTakenEvents.OwningHealthComp = this;
-	DamageDoneEvents.OwningHealthComp = this;
+	HealthEventsTaken.OwningHealthComp = this;
+	HealthEventsDone.OwningHealthComp = this;
 	KillingBlows.OwningHealthComp = this;
 	GetAbilityComponent()->GetGameplayAttributeValueChangeDelegate(UHealthAttributeSet::GetMaxHealthAttribute()).AddUObject(this, &UHealthComponent::MaxHealthChangedCallback);
 	GetAbilityComponent()->GetGameplayAttributeValueChangeDelegate(UHealthAttributeSet::GetHealthAttribute()).AddUObject(this, &UHealthComponent::HealthChangedCallback);
@@ -61,62 +61,122 @@ void UHealthComponent::OnRep_IsAlive()
 	OnLifeStatusChanged.Broadcast(bIsAlive);
 }
 
-void UHealthComponent::AuthNotifyDamageTakenEvent(const FDamagingEvent& NewEvent)
+void UHealthComponent::AuthNotifyHealthEventTaken(const FHealthEvent& NewEvent)
 {
-	if (DamageTakenEvents.Items.Num() > MAXSAVEDDAMAGEEVENTS)
+	if (HealthEventsTaken.Items.Num() > MAXSAVEDHEALTHEVENTS)
 	{
-		for (int i = DamageTakenEvents.Items.Num() - 1; i >= 0; i--)
+		for (int i = HealthEventsTaken.Items.Num() - 1; i >= 0; i--)
 		{
-			if (DamageTakenEvents.Items[i].Time + DAMAGEEVENTNOTIFYWINDOW < GetWorld()->GetGameState()->GetServerWorldTimeSeconds())
+			if (HealthEventsTaken.Items[i].Time + HEALTHEVENTNOTIFYWINDOW < GetWorld()->GetGameState()->GetServerWorldTimeSeconds())
 			{
-				DamageTakenEvents.Items.RemoveAt(i);
-				DamageTakenEvents.MarkArrayDirty();
+				HealthEventsTaken.Items.RemoveAt(i);
+				HealthEventsTaken.MarkArrayDirty();
 			}
 		}
 	}
-	FDamagingEventItem TimestampedEvent;
+	FHealthEventItem TimestampedEvent;
 	TimestampedEvent.DamageEvent = NewEvent;
 	TimestampedEvent.Time = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
-	DamageTakenEvents.MarkItemDirty(DamageTakenEvents.Items.Add_GetRef(TimestampedEvent));
-	OnDamageTaken.Broadcast(NewEvent);
+	HealthEventsTaken.MarkItemDirty(HealthEventsTaken.Items.Add_GetRef(TimestampedEvent));
+	switch (NewEvent.EventType)
+	{
+		case EHealthEventType::None :
+			break;
+		case EHealthEventType::Damage :
+			OnDamageTaken.Broadcast(NewEvent);
+			break;
+		case EHealthEventType::Healing :
+			OnHealingTaken.Broadcast(NewEvent);
+			break;
+		case EHealthEventType::Absorb :
+			OnAbsorbTaken.Broadcast(NewEvent);
+			break;
+		default :
+			break;
+	}
 }
 
-void UHealthComponent::ReplicatedNotifyDamageTakenEvent(const FDamagingEvent& NewEvent, const float EventTime)
+void UHealthComponent::ReplicatedNotifyHealthEventTaken(const FHealthEvent& NewEvent, const float EventTime)
 {
-	if (GetWorld() && GetWorld()->GetGameState() && GetWorld()->GetGameState()->GetServerWorldTimeSeconds() > EventTime + DAMAGEEVENTNOTIFYWINDOW)
+	if (GetWorld() && GetWorld()->GetGameState() && GetWorld()->GetGameState()->GetServerWorldTimeSeconds() > EventTime + HEALTHEVENTNOTIFYWINDOW)
 	{
 		return;
 	}
-	OnDamageTaken.Broadcast(NewEvent);
+	switch (NewEvent.EventType)
+	{
+		case EHealthEventType::None :
+			break;
+		case EHealthEventType::Damage :
+			OnDamageTaken.Broadcast(NewEvent);
+			break;
+		case EHealthEventType::Healing :
+			OnHealingTaken.Broadcast(NewEvent);
+			break;
+		case EHealthEventType::Absorb :
+			OnAbsorbTaken.Broadcast(NewEvent);
+			break;
+		default :
+			break;
+	}
 }
 
-void UHealthComponent::AuthNotifyDamageDoneEvent(const FDamagingEvent& NewEvent)
+void UHealthComponent::AuthNotifyHealthEventDone(const FHealthEvent& NewEvent)
 {
-	if (DamageDoneEvents.Items.Num() > MAXSAVEDDAMAGEEVENTS)
+	if (HealthEventsDone.Items.Num() > MAXSAVEDHEALTHEVENTS)
 	{
-		for (int i = DamageDoneEvents.Items.Num() - 1; i >= 0; i--)
+		for (int i = HealthEventsDone.Items.Num() - 1; i >= 0; i--)
 		{
-			if (DamageDoneEvents.Items[i].Time + DAMAGEEVENTNOTIFYWINDOW < GetWorld()->GetGameState()->GetServerWorldTimeSeconds())
+			if (HealthEventsDone.Items[i].Time + HEALTHEVENTNOTIFYWINDOW < GetWorld()->GetGameState()->GetServerWorldTimeSeconds())
 			{
-				DamageDoneEvents.Items.RemoveAt(i);
-				DamageDoneEvents.MarkArrayDirty();
+				HealthEventsDone.Items.RemoveAt(i);
+				HealthEventsDone.MarkArrayDirty();
 			}
 		}
 	}
-	FDamagingEventItem TimestampedEvent;
+	FHealthEventItem TimestampedEvent;
 	TimestampedEvent.DamageEvent = NewEvent;
 	TimestampedEvent.Time = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
-	DamageDoneEvents.MarkItemDirty(DamageDoneEvents.Items.Add_GetRef(TimestampedEvent));
-	OnDamageDone.Broadcast(NewEvent);
+	HealthEventsDone.MarkItemDirty(HealthEventsDone.Items.Add_GetRef(TimestampedEvent));
+	switch (NewEvent.EventType)
+	{
+		case EHealthEventType::None :
+			break;
+		case EHealthEventType::Damage :
+			OnDamageDone.Broadcast(NewEvent);
+			break;
+		case EHealthEventType::Healing :
+			OnHealingDone.Broadcast(NewEvent);
+			break;
+		case EHealthEventType::Absorb :
+			OnAbsorbDone.Broadcast(NewEvent);
+			break;
+		default :
+			break;
+	}
 }
 
-void UHealthComponent::ReplicatedNotifyDamageDoneEvent(const FDamagingEvent& NewEvent, const float EventTime)
+void UHealthComponent::ReplicatedNotifyHealthEventDone(const FHealthEvent& NewEvent, const float EventTime)
 {
-	if (GetWorld() && GetWorld()->GetGameState() && GetWorld()->GetGameState()->GetServerWorldTimeSeconds() > EventTime + DAMAGEEVENTNOTIFYWINDOW)
+	if (GetWorld() && GetWorld()->GetGameState() && GetWorld()->GetGameState()->GetServerWorldTimeSeconds() > EventTime + HEALTHEVENTNOTIFYWINDOW)
 	{
 		return;
 	}
-	OnDamageDone.Broadcast(NewEvent);
+	switch (NewEvent.EventType)
+	{
+		case EHealthEventType::None :
+			break;
+		case EHealthEventType::Damage :
+			OnDamageDone.Broadcast(NewEvent);
+			break;
+		case EHealthEventType::Healing :
+			OnHealingDone.Broadcast(NewEvent);
+			break;
+		case EHealthEventType::Absorb :
+			OnAbsorbDone.Broadcast(NewEvent);
+			break;
+		default :
+			break;
+	}
 }
 
 void UHealthComponent::AuthNotifyKillingBlowEvent(USaiyoraAbilityComponent* Target)

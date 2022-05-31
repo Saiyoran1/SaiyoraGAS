@@ -27,21 +27,25 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnHealthChanged OnMaxHealthChanged;
 	UPROPERTY(BlueprintAssignable)
-	FOnDamage OnDamageTaken;
+	FOnHealthEvent OnDamageTaken;
 	UPROPERTY(BlueprintAssignable)
-	FOnDamage OnHealingTaken;
-	UPROPERTY(BlueprintAssignable)
-	FOnDamage OnAbsorbTaken;
-	UPROPERTY(BlueprintAssignable)
-	FOnDamage OnDamageDone;
+	FOnHealthEvent OnDamageDone;
 	UPROPERTY(BlueprintAssignable)
 	FOnKillingBlow OnKillingBlow;
+	UPROPERTY(BlueprintAssignable)
+	FOnHealthEvent OnHealingTaken;
+	UPROPERTY(BlueprintAssignable)
+	FOnHealthEvent OnHealingDone;
+	UPROPERTY(BlueprintAssignable)
+	FOnHealthEvent OnAbsorbTaken;
+	UPROPERTY(BlueprintAssignable)
+	FOnHealthEvent OnAbsorbDone;
 
-	void AuthNotifyDamageTakenEvent(const FDamagingEvent& NewEvent);
-	void ReplicatedNotifyDamageTakenEvent(const FDamagingEvent& NewEvent, const float EventTime);
+	void AuthNotifyHealthEventTaken(const FHealthEvent& NewEvent);
+	void ReplicatedNotifyHealthEventTaken(const FHealthEvent& NewEvent, const float EventTime);
 
-	void AuthNotifyDamageDoneEvent(const FDamagingEvent& NewEvent);
-	void ReplicatedNotifyDamageDoneEvent(const FDamagingEvent& NewEvent, const float EventTime);
+	void AuthNotifyHealthEventDone(const FHealthEvent& NewEvent);
+	void ReplicatedNotifyHealthEventDone(const FHealthEvent& NewEvent, const float EventTime);
 
 	void AuthNotifyKillingBlowEvent(USaiyoraAbilityComponent* Target);
 	void ReplicatedNotifyKillingBlowEvent(USaiyoraAbilityComponent* Target, const float EventTime);
@@ -49,8 +53,8 @@ public:
 
 private:
 
-	static const float DAMAGEEVENTNOTIFYWINDOW;
-	static const int32 MAXSAVEDDAMAGEEVENTS;
+	static const float HEALTHEVENTNOTIFYWINDOW;
+	static const int32 MAXSAVEDHEALTHEVENTS;
 	static const float KILLINGBLOWNOTIFYWINDOW;
 	static const int32 MAXSAVEDKILLINGBLOWS;
 
@@ -68,9 +72,9 @@ private:
 	FGameplayAbilitySpecHandle DeathAbilityHandle;
 	
 	UPROPERTY(Replicated)
-	FDamagingEventArray DamageTakenEvents;
+	FHealthEventArray HealthEventsTaken;
 	UPROPERTY(Replicated)
-	FDamagingEventArray DamageDoneEvents;
+	FHealthEventArray HealthEventsDone;
 	UPROPERTY(Replicated)
 	FKillingBlowArray KillingBlows;
 };
