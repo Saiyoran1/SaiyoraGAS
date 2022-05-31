@@ -13,7 +13,6 @@ class SAIYORAGAS_API UDamageAttributeSet : public USaiyoraAttributeSet
 public:
 
 	UDamageAttributeSet();
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Damage")
 	FGameplayAttributeData DamageDoneMultiplier;
@@ -34,28 +33,4 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Healing")
 	FGameplayAttributeData HealingDoneAddon;
 	ATTRIBUTE_ACCESSORS(UDamageAttributeSet, HealingDoneAddon);
-
-	void AuthNotifyDamageDoneEvent(const FDamagingEvent& DamageEvent);
-	void ReplicatedNotifyDamageDoneEvent(const FDamagingEvent& DamageEvent, const float EventTime);
-	UPROPERTY(BlueprintAssignable)
-	FOnDamage OnDamageDone;
-
-	void AuthNotifyKillingBlowEvent(USaiyoraAbilityComponent* Target);
-	void ReplicatedNotifyKillingBlowEvent(USaiyoraAbilityComponent* Target, const float EventTime);
-	UPROPERTY(BlueprintAssignable)
-	FOnKillingBlow OnKillingBlow;
-
-private:
-
-	static const float DamageDoneNotifyWindow;
-	static const int32 MaxSavedDamageDoneEvents;
-	static const float KillingBlowNotifyWindow;
-	static const int32 MaxSavedKillingBlows;
-
-	virtual void SetupDelegates() override;
-
-	UPROPERTY(Replicated)
-	FDamagingEventArray DamageDoneEvents;
-	UPROPERTY(Replicated)
-	FKillingBlowArray KillingBlows;
 };

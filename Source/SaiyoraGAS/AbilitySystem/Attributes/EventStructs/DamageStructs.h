@@ -28,7 +28,7 @@ struct FDamagingEventItem : public FFastArraySerializerItem
 	UPROPERTY()
 	FDamagingEvent DamageEvent;
 	UPROPERTY()
-	float Time;
+	float Time = 0.0f;
 
 	void PostReplicatedAdd(const struct FDamagingEventArray& InArraySerializer);
 };
@@ -41,9 +41,7 @@ struct FDamagingEventArray : public FFastArraySerializer
 	UPROPERTY()
 	TArray<FDamagingEventItem> Items;
 	UPROPERTY(NotReplicated)
-	class UHealthAttributeSet* OwningHealthSet = nullptr;
-	UPROPERTY(NotReplicated)
-	class UDamageAttributeSet* OwningDamageSet = nullptr;
+	class UHealthComponent* OwningHealthComp = nullptr;
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
@@ -68,9 +66,9 @@ struct FKillingBlowItem : public FFastArraySerializerItem
 	GENERATED_BODY();
 
 	UPROPERTY()
-	USaiyoraAbilityComponent* Target;
+	USaiyoraAbilityComponent* Target = nullptr;
 	UPROPERTY()
-	float Time;
+	float Time = 0.0f;
 
 	void PostReplicatedAdd(const struct FKillingBlowArray& InArraySerializer);
 };
@@ -83,7 +81,7 @@ struct FKillingBlowArray : public FFastArraySerializer
 	UPROPERTY()
 	TArray<FKillingBlowItem> Items;
 	UPROPERTY(NotReplicated)
-	class UDamageAttributeSet* OwningDamageSet = nullptr;
+	class UHealthComponent* OwningHealthComp = nullptr;
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
@@ -104,3 +102,5 @@ struct TStructOpsTypeTraits<FKillingBlowArray> : public TStructOpsTypeTraitsBase
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDamage, const FDamagingEvent&, DamageEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnKillingBlow, const USaiyoraAbilityComponent*, Target);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLifeStatusChanged, const bool, bAlive);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, const float, PreviousHealth, const float, NewHealth);

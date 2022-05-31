@@ -12,20 +12,19 @@ class SAIYORAGAS_API USaiyoraCombatComponent : public UActorComponent
 public:
 	
 	USaiyoraCombatComponent();
-	virtual void BeginPlay() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	void InitCombatComponent(USaiyoraAbilityComponent* OwnerAbilityComponent);
 
 	UFUNCTION(BlueprintPure, Category = "Abilities")
 	USaiyoraAbilityComponent* GetAbilityComponent() const { return AbilityComponent; }
 
 private:
 
-	UPROPERTY()
+	UPROPERTY(ReplicatedUsing=OnRep_AbilityComponent)
 	USaiyoraAbilityComponent* AbilityComponent;
-	UPROPERTY(EditAnywhere, Category = "Abilities", meta = (AllowPrivateAccess = "true"))
-	TMap<TSubclassOf<USaiyoraAttributeSet>, TSubclassOf<USaiyoraGameplayEffect>> DefaultAttributes;
-	UPROPERTY(EditAnywhere, Category = "Abilities", meta = (AllowPrivateAccess = "true"))
-	TMap<TSubclassOf<USaiyoraGameplayAbility>, bool> DefaultAbilities;
-	TArray<FGameplayAbilitySpecHandle> GrantedAbilities;
-	UPROPERTY(EditAnywhere, Category = "Abilities", meta = (AllowPrivateAccess = "true"))
-	TSet<TSubclassOf<USaiyoraGameplayEffect>> DefaultEffects;
+	UFUNCTION()
+	void OnRep_AbilityComponent();
+	bool bInitialized = false;
+	
+	virtual void PostInitialize() {}
 };

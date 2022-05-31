@@ -13,15 +13,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAttributeChange, const float, OldV
 	GAMEPLAYATTRIBUTE_VALUE_SETTER(PropertyName) \
 	GAMEPLAYATTRIBUTE_VALUE_INITTER(PropertyName)
 
-#define ATTRIBUTE_NOTIFIER(ClassName, PropertyName) \
-	void Fire##PropertyName##Delegate(const FOnAttributeChangeData& Data) \
-	{ \
-		On##PropertyName##Changed.Broadcast(Data.OldValue, Data.NewValue); \
-	}
-
-#define SETUP_NOTIFIER(ClassName, PropertyName) \
-	GetOwningAbilityComponent()->GetGameplayAttributeValueChangeDelegate(Get##PropertyName##Attribute()).AddUObject(this, &##ClassName##::Fire##PropertyName##Delegate);
-
 UCLASS(Abstract)
 class SAIYORAGAS_API USaiyoraAttributeSet : public UAttributeSet
 {
@@ -31,6 +22,7 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
+	virtual void PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const override;
 	void SetOwningComponent(class USaiyoraAbilityComponent* AbilityComponent);
 	UFUNCTION(BlueprintPure)
 	class USaiyoraAbilityComponent* GetOwningAbilityComponent() const { return OwningAbilityComp; }
@@ -44,10 +36,7 @@ protected:
 private:
 
 	virtual void ClampAttributes(const FGameplayAttribute& Attribute, float& NewValue) const {}
-	virtual void SetupDelegates() {}
 
-	UPROPERTY(ReplicatedUsing=OnRep_OwningAbilityComp)
+	UPROPERTY(Replicated)
 	class USaiyoraAbilityComponent* OwningAbilityComp;
-	UFUNCTION()
-	void OnRep_OwningAbilityComp();
 };

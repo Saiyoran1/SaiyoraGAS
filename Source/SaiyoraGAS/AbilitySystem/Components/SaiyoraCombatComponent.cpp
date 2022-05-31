@@ -1,44 +1,36 @@
 ﻿#include "SaiyoraCombatComponent.h"
-#include "AbilitySystemInterface.h"
-#include "SaiyoraGAS/AbilitySystem/Abilities/SaiyoraGameplayAbility.h"
-#include "SaiyoraGAS/AbilitySystem/Effects/SaiyoraGameplayEffect.h"
+
+#include "Net/UnrealNetwork.h"
 
 USaiyoraCombatComponent::USaiyoraCombatComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void USaiyoraCombatComponent::BeginPlay()
+void USaiyoraCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	Super::BeginPlay();
-	if (GetOwner()->HasAuthority())
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(USaiyoraCombatComponent, AbilityComponent);
+}
+
+void USaiyoraCombatComponent::InitCombatComponent(USaiyoraAbilityComponent* OwnerAbilityComponent)
+{
+	if (bInitialized || !GetOwner()->HasAuthority())
 	{
-		check(GetOwner()->GetClass()->ImplementsInterface(UAbilitySystemInterface::StaticClass()))
-		const IAbilitySystemInterface* OwnerAbilitySystem = Cast<IAbilitySystemInterface>(GetOwner());
-		AbilityComponent = Cast<USaiyoraAbilityComponent>(OwnerAbilitySystem->GetAbilitySystemComponent());
-		check(AbilityComponent);
-		AbilityComponent->InitAttributes(DefaultAttributes);
-		for (const TTuple<TSubclassOf<USaiyoraGameplayAbility>, bool>& AbilityPair : DefaultAbilities)
-		{
-			if (AbilityPair.Key)
-			{
-				const FGameplayAbilitySpec Spec = FGameplayAbilitySpec(AbilityPair.Key, 1, INDEX_NONE, this);
-				const FGameplayAbilitySpecHandle SpecHandle = AbilityComponent->GiveAbility(Spec);
-				GrantedAbilities.Add(SpecHandle);
-				if (AbilityPair.Value && SpecHandle.IsValid())
-				{
-					AbilityComponent->TryActivateAbility(SpecHandle);
-				}
-			}
-		}
-		for (const TSubclassOf<USaiyoraGameplayEffect> EffectClass : DefaultEffects)
-		{
-			if (EffectClass)
-			{
-				const USaiyoraGameplayEffect* DefaultEffect = EffectClass->GetDefaultObject<USaiyoraGameplayEffect>();
-				AbilityComponent->ApplyGameplayEffectToSelf(DefaultEffect, 1.0f, AbilityComponent->MakeEffectContext());
-			}
-		}
+		return;
+	}
+	checkf(OwnerAbilityComponent, TEXT("Invalid ability component in %s."), *GetName());
+	AbilityComponent = OwnerAbilityComponent;
+	bInitialized = true;
+	PostInitialize();
+}
+
+void USaiyoraCombatComponent::OnRep_AbilityComponent()
+{
+	if (!bInitialized && AbilityComponent)
+	{
+		bInitialized = true;
+		PostInitialize();
 	}
 }
 

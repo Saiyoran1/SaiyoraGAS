@@ -1,6 +1,6 @@
 ﻿#include "DamageStructs.h"
 #include "SaiyoraGAS/AbilitySystem/Attributes/DamageAttributeSet.h"
-#include "SaiyoraGAS/AbilitySystem/Attributes/HealthAttributeSet.h"
+#include "SaiyoraGAS/AbilitySystem/Components/HealthComponent.h"
 
 
 void FDamagingEventItem::PostReplicatedAdd(const FDamagingEventArray& InArraySerializer)
@@ -10,13 +10,9 @@ void FDamagingEventItem::PostReplicatedAdd(const FDamagingEventArray& InArraySer
 
 void FDamagingEventArray::OnAdded(const FDamagingEvent& NewEvent, const float EventTime) const
 {
-	if (OwningHealthSet)
+	if (OwningHealthComp)
 	{
-		OwningHealthSet->ReplicatedNotifyDamageTakenEvent(NewEvent, EventTime);
-	}
-	else if (OwningDamageSet)
-	{
-		OwningDamageSet->ReplicatedNotifyDamageDoneEvent(NewEvent, EventTime);
+		OwningHealthComp->ReplicatedNotifyDamageTakenEvent(NewEvent, EventTime);
 	}
 }
 
@@ -27,9 +23,9 @@ void FKillingBlowItem::PostReplicatedAdd(const FKillingBlowArray& InArraySeriali
 
 void FKillingBlowArray::OnAdded(USaiyoraAbilityComponent* Target, const float EventTime) const
 {
-	if (OwningDamageSet)
+	if (OwningHealthComp)
 	{
-		OwningDamageSet->ReplicatedNotifyKillingBlowEvent(Target, EventTime);
+		OwningHealthComp->ReplicatedNotifyKillingBlowEvent(Target, EventTime);
 	}
 }
 

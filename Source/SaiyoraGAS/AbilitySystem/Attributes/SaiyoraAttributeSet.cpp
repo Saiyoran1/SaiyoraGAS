@@ -14,10 +14,15 @@ void USaiyoraAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribut
 	ClampAttributes(Attribute, NewValue);
 }
 
+void USaiyoraAttributeSet::PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const
+{
+	Super::PreAttributeBaseChange(Attribute, NewValue);
+	ClampAttributes(Attribute, NewValue);
+}
+
 void USaiyoraAttributeSet::SetOwningComponent(USaiyoraAbilityComponent* AbilityComponent)
 {
 	OwningAbilityComp = AbilityComponent;
-	OnRep_OwningAbilityComp();
 }
 
 void USaiyoraAttributeSet::ScaleAttributeOnMaxChange(const FGameplayAttribute& Attribute, const float OldMax,
@@ -39,13 +44,5 @@ void USaiyoraAttributeSet::ClampAttributeOnMaxChange(const FGameplayAttribute& A
 	if (Attribute.GetNumericValue(this) > NewMax)
 	{
 		GetOwningAbilitySystemComponent()->ApplyModToAttribute(Attribute, EGameplayModOp::Override, NewMax);
-	}
-}
-
-void USaiyoraAttributeSet::OnRep_OwningAbilityComp()
-{
-	if (OwningAbilityComp)
-	{
-		SetupDelegates();
 	}
 }

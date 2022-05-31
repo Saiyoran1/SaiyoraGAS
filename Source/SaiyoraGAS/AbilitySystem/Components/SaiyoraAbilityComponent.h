@@ -3,6 +3,15 @@
 #include "AbilitySystemComponent.h"
 #include "SaiyoraAbilityComponent.generated.h"
 
+USTRUCT(BlueprintType)
+struct FAttributeInitialValues
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = "Attributes")
+	TMap<FGameplayAttribute, float> Values;
+};
+
 UCLASS()
 class SAIYORAGAS_API USaiyoraAbilityComponent : public UAbilitySystemComponent
 {
@@ -11,12 +20,14 @@ class SAIYORAGAS_API USaiyoraAbilityComponent : public UAbilitySystemComponent
 public:
 
 	virtual void BeginPlay() override;
-	void InitAttributes(const TMap<TSubclassOf<class USaiyoraAttributeSet>, TSubclassOf<class USaiyoraGameplayEffect>>& Attributes);
+	void InitAttributes(const TMap<TSubclassOf<class USaiyoraAttributeSet>, FAttributeInitialValues>& Attributes);
 	
 private:
 	
 	UPROPERTY(EditAnywhere, Category = "Attributes")
-	TMap<TSubclassOf<class USaiyoraAttributeSet>, TSubclassOf<class USaiyoraGameplayEffect>> DefaultAttributes;
+	TMap<TSubclassOf<class USaiyoraAttributeSet>, FAttributeInitialValues> DefaultAttributes;
 	UPROPERTY(EditAnywhere, Category = "Abilities")
 	TMap<TSubclassOf<class USaiyoraGameplayAbility>, bool> DefaultAbilities;
+	UPROPERTY()
+	TArray<class USaiyoraCombatComponent*> CombatComponents;
 };

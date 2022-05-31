@@ -1,13 +1,10 @@
 #include "HealthAttributeSet.h"
 #include "GameplayEffectExtension.h"
-#include "GameFramework/GameStateBase.h"
 #include "DamageAttributeSet.h"
 #include "Net/UnrealNetwork.h"
-#include "SaiyoraGAS/AbilitySystem/Abilities/CoreAbilities/DeathAbility.h"
 #include "SaiyoraGAS/AbilitySystem/Components/SaiyoraAbilityComponent.h"
 
-const float UHealthAttributeSet::DamageTakenNotifyWindow = 1.0f;
-const int32 UHealthAttributeSet::MaxSavedDamageTakenEvents = 100;
+const float UHealthAttributeSet::MINMAXHEALTH = 1.0f;
 
 UHealthAttributeSet::UHealthAttributeSet()
 {
@@ -28,15 +25,6 @@ void UHealthAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME_CONDITION_NOTIFY(UHealthAttributeSet, Health, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UHealthAttributeSet, MaxHealth, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UHealthAttributeSet, Absorb, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME(UHealthAttributeSet, DamageTakenEvents);
-}
-
-void UHealthAttributeSet::SetupDelegates()
-{
-	SETUP_NOTIFIER(UHealthAttributeSet, Health);
-	SETUP_NOTIFIER(UHealthAttributeSet, MaxHealth);
-	SETUP_NOTIFIER(UHealthAttributeSet, Absorb);
-	DamageTakenEvents.OwningHealthSet = this;
 }
 
 void UHealthAttributeSet::ClampAttributes(const FGameplayAttribute& Attribute, float& NewValue) const
@@ -47,7 +35,7 @@ void UHealthAttributeSet::ClampAttributes(const FGameplayAttribute& Attribute, f
 	}
 	else if (Attribute == GetMaxHealthAttribute())
 	{
-		NewValue = FMath::Max(NewValue, 1.0f);
+		NewValue = FMath::Max(NewValue, MINMAXHEALTH);
 	}
 	else if (Attribute == GetAbsorbAttribute())
 	{
@@ -63,35 +51,6 @@ void UHealthAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribut
 		ScaleAttributeOnMaxChange(GetHealthAttribute(), OldValue, NewValue);
 		ClampAttributeOnMaxChange(GetAbsorbAttribute(), NewValue);
 	}
-}
-
-void UHealthAttributeSet::AuthNotifyDamageTakenEvent(const FDamagingEvent& DamageEvent)
-{
-	if (DamageTakenEvents.Items.Num() > MaxSavedDamageTakenEvents)
-	{
-		for (int i = DamageTakenEvents.Items.Num() - 1; i >= 0; i--)
-		{
-			if (DamageTakenEvents.Items[i].Time + DamageTakenNotifyWindow < GetWorld()->GetGameState()->GetServerWorldTimeSeconds())
-			{
-				DamageTakenEvents.Items.RemoveAt(i);
-				DamageTakenEvents.MarkArrayDirty();
-			}
-		}
-	}
-	FDamagingEventItem TimestampedEvent;
-	TimestampedEvent.DamageEvent = DamageEvent;
-	TimestampedEvent.Time = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
-	DamageTakenEvents.MarkItemDirty(DamageTakenEvents.Items.Add_GetRef(TimestampedEvent));
-	OnDamageTaken.Broadcast(DamageEvent);
-}
-
-void UHealthAttributeSet::ReplicatedNotifyDamageTakenEvent(const FDamagingEvent& DamageEvent, const float EventTime)
-{
-	if (GetWorld() && GetWorld()->GetGameState() && GetWorld()->GetGameState()->GetServerWorldTimeSeconds() > EventTime + DamageTakenNotifyWindow)
-	{
-		return;
-	}
-	OnDamageTaken.Broadcast(DamageEvent);
 }
 
 void UHealthAttributeSet::OnRep_Health(const FGameplayAttributeData& Old)
