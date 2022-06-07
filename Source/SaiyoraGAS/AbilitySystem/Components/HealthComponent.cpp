@@ -57,11 +57,32 @@ void UHealthComponent::PostInitialize()
 	GetAbilityComponent()->GetGameplayAttributeValueChangeDelegate(UHealthAttributeSet::GetHealthAttribute()).AddUObject(this, &UHealthComponent::HealthChangedCallback);
 	OnMaxHealthChanged.Broadcast(0.0f, GetAbilityComponent()->GetNumericAttribute(UHealthAttributeSet::GetMaxHealthAttribute()));
 	OnHealthChanged.Broadcast(0.0f, GetAbilityComponent()->GetNumericAttribute(UHealthAttributeSet::GetHealthAttribute()));
+	GetAbilityComponent()->RegisterGameplayTagEvent(DeathTag, EGameplayTagEventType::AnyCountChange).AddUObject(this, &UHealthComponent::OnDeathTagChanged);
 }
 
-void UHealthComponent::OnRep_IsAlive()
+void UHealthComponent::OnRep_IsAlive(const bool bPreviouslyAlive)
 {
-	OnLifeStatusChanged.Broadcast(bIsAlive);
+	if (bPreviouslyAlive != bIsAlive)
+	{
+		OnLifeStatusChanged.Broadcast(bIsAlive);
+	}
+}
+
+void UHealthComponent::OnDeathTagChanged(const FGameplayTag CallbackTag, const int32 NewCount)
+{
+	if (CallbackTag.MatchesTagExact(DeathTag))
+	{
+		if (bIsAlive && NewCount > 0)
+		{
+			bIsAlive = false;
+			OnLifeStatusChanged.Broadcast(bIsAlive);
+		}
+		else if (!bIsAlive && NewCount <= 0)
+		{
+			bIsAlive = true;
+			OnLifeStatusChanged.Broadcast(bIsAlive);
+		}
+	}
 }
 
 void UHealthComponent::AuthNotifyHealthEventTaken(const FHealthEvent& NewEvent)
@@ -99,12 +120,7 @@ void UHealthComponent::AuthNotifyHealthEventTaken(const FHealthEvent& NewEvent)
 	}
 	if (bIsAlive && GetAbilityComponent() && GetHealth() <= 0.0f)
 	{
-		const bool bDied = GetAbilityComponent()->TryActivateAbilityByClass(UDeathAbility::StaticClass());
-		if (bDied)
-		{
-			bIsAlive = false;
-			OnLifeStatusChanged.Broadcast(bIsAlive);
-		}
+		GetAbilityComponent()->TryActivateAbilityByClass(UDeathAbility::StaticClass());
 	}
 }
 

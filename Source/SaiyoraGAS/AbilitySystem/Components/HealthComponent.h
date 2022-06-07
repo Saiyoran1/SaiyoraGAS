@@ -70,8 +70,9 @@ private:
 	UPROPERTY(ReplicatedUsing=OnRep_IsAlive)
 	bool bIsAlive = true;
 	UFUNCTION()
-	void OnRep_IsAlive();
+	void OnRep_IsAlive(const bool bPreviouslyAlive);
 	FGameplayAbilitySpecHandle DeathAbilityHandle;
+	void OnDeathTagChanged(const FGameplayTag CallbackTag, const int32 NewCount);
 	
 	UPROPERTY(Replicated)
 	FHealthEventArray HealthEventsTaken;
