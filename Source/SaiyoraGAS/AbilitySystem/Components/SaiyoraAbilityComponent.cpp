@@ -1,5 +1,4 @@
 #include "SaiyoraAbilityComponent.h"
-
 #include "SaiyoraCombatComponent.h"
 #include "SaiyoraGAS/AbilitySystem/Abilities/SaiyoraGameplayAbility.h"
 #include "SaiyoraGAS/AbilitySystem/Attributes/HealthAttributeSet.h"

@@ -1,11 +1,13 @@
 ﻿#include "DeathAbility.h"
-
 #include "AbilitySystemComponent.h"
 #include "SaiyoraGAS/AbilitySystem/Attributes/HealthAttributeSet.h"
+#include "SaiyoraGAS/AbilitySystem/Effects/DeathEffect.h"
 
 UDeathAbility::UDeathAbility()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
+	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
 }
 
 bool UDeathAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handle,
@@ -23,8 +25,7 @@ void UDeathAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
                                     const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString(TEXT("Death ability activated.")));
-	}
+	const FGameplayEffectContextHandle EffectContextHandle = ActorInfo->AbilitySystemComponent->MakeEffectContext();
+	const FGameplayEffectSpec DeathEffectSpec = FGameplayEffectSpec(UDeathEffect::StaticClass()->GetDefaultObject<UGameplayEffect>(), EffectContextHandle, 1.0f);
+	ActorInfo->AbilitySystemComponent.Get()->ApplyGameplayEffectSpecToSelf(DeathEffectSpec);
 }

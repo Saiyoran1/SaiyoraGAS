@@ -2,10 +2,12 @@
 
 #include "SaiyoraGameState.h"
 #include "Camera/CameraComponent.h"
+#include "Character/SaiyoraMovementComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
-ASaiyoraPlayerCharacter::ASaiyoraPlayerCharacter()
+ASaiyoraPlayerCharacter::ASaiyoraPlayerCharacter(const FObjectInitializer& ObjectInitializer)
+	:Super(ObjectInitializer.SetDefaultSubobjectClass<USaiyoraMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	PrimaryActorTick.bCanEverTick = false;
 

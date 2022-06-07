@@ -5,6 +5,7 @@
 #include "SaiyoraGAS/AbilitySystem/Attributes/DamageAttributeSet.h"
 #include "SaiyoraGAS/AbilitySystem/Attributes/HealthAttributeSet.h"
 
+const FGameplayTag UHealthComponent::DeathTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Status.Dead")), false);
 const float UHealthComponent::HEALTHEVENTNOTIFYWINDOW = 1.0f;
 const int32 UHealthComponent::MAXSAVEDHEALTHEVENTS = 100;
 const float UHealthComponent::KILLINGBLOWNOTIFYWINDOW = 5.0f;
@@ -46,6 +47,8 @@ void UHealthComponent::PostInitialize()
 		InitialValuesMap.Add(UHealthAttributeSet::StaticClass(), InitialValues);
 		InitialValuesMap.Add(UDamageAttributeSet::StaticClass(), FAttributeInitialValues());
 		GetAbilityComponent()->InitAttributes(InitialValuesMap);
+		const FGameplayAbilitySpec DeathSpec = FGameplayAbilitySpec(UDeathAbility::StaticClass());
+		DeathAbilityHandle = GetAbilityComponent()->GiveAbility(DeathSpec);
 	}
 	HealthEventsTaken.OwningHealthComp = this;
 	HealthEventsDone.OwningHealthComp = this;
@@ -93,6 +96,15 @@ void UHealthComponent::AuthNotifyHealthEventTaken(const FHealthEvent& NewEvent)
 			break;
 		default :
 			break;
+	}
+	if (bIsAlive && GetAbilityComponent() && GetHealth() <= 0.0f)
+	{
+		const bool bDied = GetAbilityComponent()->TryActivateAbilityByClass(UDeathAbility::StaticClass());
+		if (bDied)
+		{
+			bIsAlive = false;
+			OnLifeStatusChanged.Broadcast(bIsAlive);
+		}
 	}
 }
 

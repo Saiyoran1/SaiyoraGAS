@@ -12,7 +12,7 @@ class SAIYORAGAS_API ASaiyoraPlayerCharacter : public ACharacter, public IAbilit
 
 public:
 
-	ASaiyoraPlayerCharacter();
+	ASaiyoraPlayerCharacter(const FObjectInitializer& ObjectInitializer);
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void OnRep_PlayerState() override;

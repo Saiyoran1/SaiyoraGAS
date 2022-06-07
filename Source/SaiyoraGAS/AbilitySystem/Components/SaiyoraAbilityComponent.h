@@ -18,7 +18,7 @@ class SAIYORAGAS_API USaiyoraAbilityComponent : public UAbilitySystemComponent
 	GENERATED_BODY()
 
 public:
-
+	
 	virtual void BeginPlay() override;
 	void InitAttributes(const TMap<TSubclassOf<class USaiyoraAttributeSet>, FAttributeInitialValues>& Attributes);
 	
