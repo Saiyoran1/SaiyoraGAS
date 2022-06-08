@@ -120,7 +120,12 @@ void UHealthComponent::AuthNotifyHealthEventTaken(const FHealthEvent& NewEvent)
 	}
 	if (bIsAlive && GetAbilityComponent() && GetHealth() <= 0.0f)
 	{
-		GetAbilityComponent()->TryActivateAbilityByClass(UDeathAbility::StaticClass());
+		const bool bSuccess = GetAbilityComponent()->TryActivateAbilityByClass(UDeathAbility::StaticClass());
+		//TODO: Check if this actually works correctly.
+		if (!bSuccess)
+		{
+			GetAbilityComponent()->ApplyModToAttribute(UHealthAttributeSet::GetHealthAttribute(), EGameplayModOp::Override, 1.0f);
+		}
 	}
 }
 

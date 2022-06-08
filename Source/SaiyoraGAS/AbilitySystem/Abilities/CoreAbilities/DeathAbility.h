@@ -9,6 +9,8 @@ class SAIYORAGAS_API UDeathAbility : public USaiyoraGameplayAbility
 	GENERATED_BODY()
 
 public:
+
+	static const FGameplayTag DeathImmunity;
 	
 	UDeathAbility();
 	virtual bool CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags, FGameplayTagContainer* OptionalRelevantTags) const override;
