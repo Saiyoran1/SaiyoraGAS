@@ -1,7 +1,8 @@
 #include "HealthAttributeSet.h"
 #include "GameplayEffectExtension.h"
-#include "DamageAttributeSet.h"
 #include "Net/UnrealNetwork.h"
+#include "SaiyoraGAS/AbilitySystem/Abilities/AbilityStructs.h"
+#include "SaiyoraGAS/AbilitySystem/Components/HealthComponent.h"
 #include "SaiyoraGAS/AbilitySystem/Components/SaiyoraAbilityComponent.h"
 
 const float UHealthAttributeSet::MINMAXHEALTH = 1.0f;
@@ -51,6 +52,54 @@ void UHealthAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribut
 	{
 		ScaleAttributeOnMaxChange(GetHealthAttribute(), OldValue, NewValue);
 		ClampAttributeOnMaxChange(GetAbsorbAttribute(), NewValue);
+	}
+}
+
+void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
+{
+	Super::PostGameplayEffectExecute(Data);
+	if ((Data.EvaluatedData.Attribute == GetHealthAttribute() || Data.EvaluatedData.Attribute == GetAbsorbAttribute()) && Data.EvaluatedData.ModifierOp == EGameplayModOp::Additive && Data.EvaluatedData.Magnitude != 0.0f)
+	{
+		UHealthComponent* TargetHealthComp = Data.Target.GetOwner()->FindComponentByClass<UHealthComponent>();
+		UHealthComponent* SourceHealthComp = Data.EffectSpec.GetEffectContext().GetInstigator()->GetOwner()->FindComponentByClass<UHealthComponent>();
+		if (TargetHealthComp || SourceHealthComp)
+		{
+			FHealthEvent HealthEvent;
+			HealthEvent.EventType = Data.EvaluatedData.Magnitude < 0.0f ? EHealthEventType::Damage : Data.EvaluatedData.Attribute == GetAbsorbAttribute() ? EHealthEventType::Absorb : EHealthEventType::Healing;
+			HealthEvent.Attacker = Cast<USaiyoraAbilityComponent>(Data.EffectSpec.GetEffectContext().GetInstigatorAbilitySystemComponent());
+			HealthEvent.Target = Cast<USaiyoraAbilityComponent>(&Data.Target);
+			HealthEvent.HitStyle = FAbilityTags::DefaultHitStyle;
+			for (const FGameplayTag Tag : Data.EffectSpec.CapturedSourceTags.GetSpecTags())
+			{
+				if (Tag.MatchesTag(FAbilityTags::HitStyle) && !Tag.MatchesTagExact(FAbilityTags::HitStyle))
+				{
+					HealthEvent.HitStyle = Tag;
+					break;
+				}
+			}
+			HealthEvent.School = FAbilityTags::DefaultSchool;
+			for (const FGameplayTag Tag : Data.EffectSpec.CapturedSourceTags.GetSpecTags())
+			{
+				if (Tag.MatchesTag(FAbilityTags::School) && !Tag.MatchesTagExact(FAbilityTags::School))
+				{
+					HealthEvent.School = Tag;
+					break;
+				}
+			}
+			HealthEvent.Amount = HealthEvent.EventType == EHealthEventType::Damage ? -Data.EvaluatedData.Magnitude : Data.EvaluatedData.Magnitude;
+			if (TargetHealthComp)
+			{
+				TargetHealthComp->AuthNotifyHealthEventTaken(HealthEvent);
+			}
+			if (SourceHealthComp)
+			{
+				SourceHealthComp->AuthNotifyHealthEventDone(HealthEvent);
+				if (HealthEvent.EventType == EHealthEventType::Damage && TargetHealthComp && TargetHealthComp->IsAlive() && TargetHealthComp->GetHealth() <= 0.0f)
+				{
+					SourceHealthComp->AuthNotifyKillingBlowEvent(HealthEvent.Target);
+				}
+			}
+		}
 	}
 }
 

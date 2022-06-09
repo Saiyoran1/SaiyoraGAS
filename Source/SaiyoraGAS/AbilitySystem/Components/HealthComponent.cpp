@@ -4,8 +4,8 @@
 #include "SaiyoraGAS/AbilitySystem/Abilities/CoreAbilities/DeathAbility.h"
 #include "SaiyoraGAS/AbilitySystem/Attributes/DamageAttributeSet.h"
 #include "SaiyoraGAS/AbilitySystem/Attributes/HealthAttributeSet.h"
+#include "SaiyoraGAS/AbilitySystem/Tags/SaiyoraCombatTags.h"
 
-const FGameplayTag UHealthComponent::DeathTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Status.Dead")), false);
 const float UHealthComponent::HEALTHEVENTNOTIFYWINDOW = 1.0f;
 const int32 UHealthComponent::MAXSAVEDHEALTHEVENTS = 100;
 const float UHealthComponent::KILLINGBLOWNOTIFYWINDOW = 5.0f;
@@ -57,7 +57,7 @@ void UHealthComponent::PostInitialize()
 	GetAbilityComponent()->GetGameplayAttributeValueChangeDelegate(UHealthAttributeSet::GetHealthAttribute()).AddUObject(this, &UHealthComponent::HealthChangedCallback);
 	OnMaxHealthChanged.Broadcast(0.0f, GetAbilityComponent()->GetNumericAttribute(UHealthAttributeSet::GetMaxHealthAttribute()));
 	OnHealthChanged.Broadcast(0.0f, GetAbilityComponent()->GetNumericAttribute(UHealthAttributeSet::GetHealthAttribute()));
-	GetAbilityComponent()->RegisterGameplayTagEvent(DeathTag, EGameplayTagEventType::AnyCountChange).AddUObject(this, &UHealthComponent::OnDeathTagChanged);
+	GetAbilityComponent()->RegisterGameplayTagEvent(FSaiyoraCombatTags::Dead, EGameplayTagEventType::AnyCountChange).AddUObject(this, &UHealthComponent::OnDeathTagChanged);
 }
 
 void UHealthComponent::OnRep_IsAlive(const bool bPreviouslyAlive)
@@ -70,7 +70,7 @@ void UHealthComponent::OnRep_IsAlive(const bool bPreviouslyAlive)
 
 void UHealthComponent::OnDeathTagChanged(const FGameplayTag CallbackTag, const int32 NewCount)
 {
-	if (CallbackTag.MatchesTagExact(DeathTag))
+	if (CallbackTag.MatchesTagExact(FSaiyoraCombatTags::Dead))
 	{
 		if (bIsAlive && NewCount > 0)
 		{

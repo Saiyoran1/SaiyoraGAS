@@ -4,6 +4,7 @@
 #include "SaiyoraGAS/AbilitySystem/Attributes/DamageAttributeSet.h"
 #include "SaiyoraGAS/AbilitySystem/Components/HealthComponent.h"
 #include "SaiyoraGAS/AbilitySystem/Components/SaiyoraAbilityComponent.h"
+#include "SaiyoraGAS/AbilitySystem/Tags/SaiyoraCombatTags.h"
 
 struct HealthEventCapture
 {
@@ -66,23 +67,23 @@ void UHealthEventExecution::Execute_Implementation(const FGameplayEffectCustomEx
 
 	const FGameplayEffectSpec& Spec = ExecutionParams.GetOwningSpec();
 	
-	FGameplayTag HealthEventTypeTag = FHealthEventTags::DamageEvent;
+	FGameplayTag HealthEventTypeTag = FSaiyoraCombatTags::DamageEvent;
 	TArray<FGameplayTag> SourceSpecTags;
 	Spec.CapturedSourceTags.GetSpecTags().GetGameplayTagArray(SourceSpecTags);
 	for (const FGameplayTag Tag : SourceSpecTags)
 	{
-		if (Tag.MatchesTag(FHealthEventTags::EventType) && !Tag.MatchesTagExact(FHealthEventTags::EventType))
+		if (Tag.MatchesTag(FSaiyoraCombatTags::HealthEventType) && !Tag.MatchesTagExact(FSaiyoraCombatTags::HealthEventType))
 		{
 			HealthEventTypeTag = Tag;
 			break;
 		}
 	}
 	EHealthEventType EventType = EHealthEventType::None;
-	if (HealthEventTypeTag == FHealthEventTags::DamageEvent)
+	if (HealthEventTypeTag == FSaiyoraCombatTags::DamageEvent)
 	{
 		EventType = EHealthEventType::Damage;
 	}
-	else if (HealthEventTypeTag == FHealthEventTags::HealingEvent)
+	else if (HealthEventTypeTag == FSaiyoraCombatTags::HealingEvent)
 	{
 		EventType = EHealthEventType::Healing;
 	}
@@ -91,18 +92,18 @@ void UHealthEventExecution::Execute_Implementation(const FGameplayEffectCustomEx
 		EventType = EHealthEventType::Absorb;
 	}
 	
-	if (Spec.CapturedTargetTags.GetActorTags().HasTagExact(EventType == EHealthEventType::Damage ? FHealthEventTags::DamageImmunity : FHealthEventTags::HealingImmunity) &&
-		!Spec.CapturedSourceTags.GetSpecTags().HasTagExact(FHealthEventTags::BypassImmunities))
+	if (Spec.CapturedTargetTags.GetActorTags().HasTagExact(EventType == EHealthEventType::Damage ? FSaiyoraCombatTags::DamageImmunity : FSaiyoraCombatTags::HealingImmunity) &&
+		!Spec.CapturedSourceTags.GetSpecTags().HasTagExact(FSaiyoraCombatTags::BypassImmunities))
 	{
 		return;
 	}
 
-	float Value = FMath::Max(Spec.GetSetByCallerMagnitude(FHealthEventTags::BaseValue, false, -1.0f), 0.0f);
+	float Value = FMath::Max(Spec.GetSetByCallerMagnitude(FSaiyoraCombatTags::HealthEventBaseValue, false, -1.0f), 0.0f);
 	FAggregatorEvaluateParameters EvaluationParams;
 	EvaluationParams.SourceTags = Spec.CapturedSourceTags.GetAggregatedTags();
 	EvaluationParams.TargetTags = Spec.CapturedTargetTags.GetAggregatedTags();
 	
-	if (!Spec.CapturedSourceTags.GetSpecTags().HasTagExact(FHealthEventTags::BypassModifiers))
+	if (!Spec.CapturedSourceTags.GetSpecTags().HasTagExact(FSaiyoraCombatTags::BypassModifiers))
 	{
 		float OutMultiplier = 1.0f;
 		ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(EventType == EHealthEventType::Damage ? GetHealthEventCapture().DamageDoneMultiplierDef : GetHealthEventCapture().HealingDoneMultiplierDef,
@@ -118,7 +119,7 @@ void UHealthEventExecution::Execute_Implementation(const FGameplayEffectCustomEx
 		ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(EventType == EHealthEventType::Damage ? GetHealthEventCapture().DamageTakenAddonDef : GetHealthEventCapture().HealingTakenAddonDef,
 			EvaluationParams, InAdditive);
 
-		if (!Spec.CapturedSourceTags.GetSpecTags().HasTagExact(FHealthEventTags::BypassCrossPlane))
+		if (!Spec.CapturedSourceTags.GetSpecTags().HasTagExact(FSaiyoraCombatTags::BypassCrossPlane))
 		{
 			float OutCrossPlaneMultiplier = 1.0f;
 			float InCrossPlaneMultiplier = 1.0f;
@@ -127,7 +128,7 @@ void UHealthEventExecution::Execute_Implementation(const FGameplayEffectCustomEx
 			Spec.CapturedSourceTags.GetActorTags().GetGameplayTagArray(SourceActorTags);
 			for (const FGameplayTag& Tag : SourceActorTags)
 			{
-				if (Tag.MatchesTag(FHealthEventTags::Plane) && !Tag.MatchesTagExact(FHealthEventTags::Plane))
+				if (Tag.MatchesTag(FSaiyoraCombatTags::Plane) && !Tag.MatchesTagExact(FSaiyoraCombatTags::Plane))
 				{
 					SourcePlane = Tag;
 					break;
@@ -140,7 +141,7 @@ void UHealthEventExecution::Execute_Implementation(const FGameplayEffectCustomEx
 				Spec.CapturedTargetTags.GetActorTags().GetGameplayTagArray(TargetActorTags);
 				for (const FGameplayTag& Tag : TargetActorTags)
 				{
-					if (Tag.MatchesTag(FHealthEventTags::Plane) && !Tag.MatchesTagExact(FHealthEventTags::Plane))
+					if (Tag.MatchesTag(FSaiyoraCombatTags::Plane) && !Tag.MatchesTagExact(FSaiyoraCombatTags::Plane))
 					{	
 						TargetPlane = Tag;
 						break;
@@ -165,7 +166,7 @@ void UHealthEventExecution::Execute_Implementation(const FGameplayEffectCustomEx
 	{
 		case EHealthEventType::Damage :
 			{
-				if (Spec.CapturedSourceTags.GetSpecTags().HasTagExact(FHealthEventTags::BypassAbsorbs))
+				if (Spec.CapturedSourceTags.GetSpecTags().HasTagExact(FSaiyoraCombatTags::BypassAbsorbs))
 				{
 					OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(GetHealthEventCapture().HealthProperty, EGameplayModOp::Additive, -Value));
 				}
@@ -175,7 +176,7 @@ void UHealthEventExecution::Execute_Implementation(const FGameplayEffectCustomEx
 					ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(GetHealthEventCapture().AbsorbDef, EvaluationParams, Absorb);
 					if (Value > Absorb)
 					{
-						OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(GetHealthEventCapture().AbsorbProperty, EGameplayModOp::Override, 0.0f));
+						OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(GetHealthEventCapture().AbsorbProperty, EGameplayModOp::Additive, -Absorb));
 						Value -= Absorb;
 						OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(GetHealthEventCapture().HealthProperty, EGameplayModOp::Additive, -Value));
 					}
@@ -197,50 +198,6 @@ void UHealthEventExecution::Execute_Implementation(const FGameplayEffectCustomEx
 			}
 			break;
 		default :
-			return;
-	}
-
-	if (Value > 0.0f)
-	{
-		UHealthComponent* TargetHealthComp = ExecutionParams.GetTargetAbilitySystemComponent()->GetOwner()->FindComponentByClass<UHealthComponent>();
-		UHealthComponent* SourceHealthComp = ExecutionParams.GetSourceAbilitySystemComponent()->GetOwner()->FindComponentByClass<UHealthComponent>();
-		if (TargetHealthComp || SourceHealthComp)
-		{
-			FHealthEvent HealthEvent;
-			HealthEvent.EventType = EventType;
-			HealthEvent.Attacker = Cast<USaiyoraAbilityComponent>(ExecutionParams.GetSourceAbilitySystemComponent());
-			HealthEvent.Target = Cast<USaiyoraAbilityComponent>(ExecutionParams.GetTargetAbilitySystemComponent());;
-			HealthEvent.HitStyle = FAbilityTags::DefaultHitStyle;
-			for (const FGameplayTag Tag : SourceSpecTags)
-			{
-				if (Tag.MatchesTag(FAbilityTags::HitStyle) && !Tag.MatchesTagExact(FAbilityTags::HitStyle))
-				{
-					HealthEvent.HitStyle = Tag;
-					break;
-				}
-			}
-			HealthEvent.School = FAbilityTags::DefaultSchool;
-			for (const FGameplayTag Tag : SourceSpecTags)
-			{
-				if (Tag.MatchesTag(FAbilityTags::School) && !Tag.MatchesTagExact(FAbilityTags::School))
-				{
-					HealthEvent.School = Tag;
-					break;
-				}
-			}
-			HealthEvent.Amount = Value;
-			if (TargetHealthComp)
-			{
-				TargetHealthComp->AuthNotifyHealthEventTaken(HealthEvent);
-			}
-			if (SourceHealthComp)
-			{
-				SourceHealthComp->AuthNotifyHealthEventDone(HealthEvent);
-				if (EventType == EHealthEventType::Damage && TargetHealthComp && Value > TargetHealthComp->GetHealth())
-				{
-					SourceHealthComp->AuthNotifyKillingBlowEvent(HealthEvent.Target);
-				}
-			}
-		}
+			break;
 	}
 }

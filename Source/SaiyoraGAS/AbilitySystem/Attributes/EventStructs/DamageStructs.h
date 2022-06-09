@@ -3,31 +3,6 @@
 #include "Engine/NetSerialization.h"
 #include "DamageStructs.generated.h"
 
-USTRUCT()
-struct FHealthEventTags
-{
-	GENERATED_BODY()
-
-	static const FGameplayTag EventType;
-	
-	static const FGameplayTag DamageEvent;
-	static const FGameplayTag DamageImmunity;
-	
-	static const FGameplayTag HealingEvent;
-	static const FGameplayTag HealingImmunity;
-	
-	static const FGameplayTag AbsorbEvent;
-	
-	static const FGameplayTag BypassImmunities;
-	static const FGameplayTag BypassModifiers;
-	static const FGameplayTag BypassCrossPlane;
-	static const FGameplayTag BypassAbsorbs;
-	
-	static const FGameplayTag BaseValue;
-
-	static const FGameplayTag Plane;
-};
-
 UENUM(BlueprintType)
 enum class EHealthEventType : uint8
 {

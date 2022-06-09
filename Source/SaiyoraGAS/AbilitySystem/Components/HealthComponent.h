@@ -11,8 +11,6 @@ class SAIYORAGAS_API UHealthComponent : public USaiyoraCombatComponent
 
 public:
 
-	static const FGameplayTag DeathTag;
-
 	UHealthComponent();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
