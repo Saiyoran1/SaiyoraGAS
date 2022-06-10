@@ -87,17 +87,13 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 				}
 			}
 			HealthEvent.Amount = HealthEvent.EventType == EHealthEventType::Damage ? -Data.EvaluatedData.Magnitude : Data.EvaluatedData.Magnitude;
-			if (TargetHealthComp)
-			{
-				TargetHealthComp->AuthNotifyHealthEventTaken(HealthEvent);
-			}
 			if (SourceHealthComp)
 			{
 				SourceHealthComp->AuthNotifyHealthEventDone(HealthEvent);
-				if (HealthEvent.EventType == EHealthEventType::Damage && TargetHealthComp && TargetHealthComp->IsAlive() && TargetHealthComp->GetHealth() <= 0.0f)
-				{
-					SourceHealthComp->AuthNotifyKillingBlowEvent(HealthEvent.Target);
-				}
+			}
+			if (TargetHealthComp)
+			{
+				TargetHealthComp->AuthNotifyHealthEventTaken(HealthEvent);
 			}
 		}
 	}

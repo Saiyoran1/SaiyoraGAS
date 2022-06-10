@@ -121,10 +121,17 @@ void UHealthComponent::AuthNotifyHealthEventTaken(const FHealthEvent& NewEvent)
 	if (bIsAlive && GetAbilityComponent() && GetHealth() <= 0.0f)
 	{
 		const bool bSuccess = GetAbilityComponent()->TryActivateAbilityByClass(UDeathAbility::StaticClass());
-		//TODO: Check if this actually works correctly.
-		if (!bSuccess)
+		if (bSuccess)
 		{
-			GetAbilityComponent()->ApplyModToAttribute(UHealthAttributeSet::GetHealthAttribute(), EGameplayModOp::Override, 1.0f);
+			if (UHealthComponent* AttackerHealthComp = NewEvent.Attacker->GetOwner()->FindComponentByClass<UHealthComponent>())
+			{
+				AttackerHealthComp->AuthNotifyKillingBlowEvent(GetAbilityComponent());
+			}
+		}
+		else
+		{
+			//TODO: Check if this actually works correctly.
+			GetAbilityComponent()->ApplyModToAttribute(UHealthAttributeSet::GetHealthAttribute(), EGameplayModOp::Additive, 1.0f);
 		}
 	}
 }

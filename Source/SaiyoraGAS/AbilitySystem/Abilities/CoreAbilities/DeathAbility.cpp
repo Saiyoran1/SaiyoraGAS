@@ -2,6 +2,7 @@
 #include "AbilitySystemComponent.h"
 #include "SaiyoraGAS/AbilitySystem/Effects/DeathEffect.h"
 #include "SaiyoraGAS/AbilitySystem/Tags/SaiyoraCombatTags.h"
+#include "SaiyoraGAS/CoreClasses/SaiyoraGameState.h"
 
 UDeathAbility::UDeathAbility()
 {
@@ -20,6 +21,12 @@ void UDeathAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 	
 	const FGameplayTagContainer IgnoreTagsContainer = FGameplayTagContainer(FSaiyoraCombatTags::AbilityIgnoreDeath);
 	ActorInfo->AbilitySystemComponent.Get()->CancelAbilities(nullptr, &IgnoreTagsContainer, this);
+	
+	if (ASaiyoraGameState* GameStateRef = Cast<ASaiyoraGameState>(GetWorld()->GetGameState()))
+	{
+		//TODO: Check tags to find out if player, boss, or trash.
+		GameStateRef->ReportPlayerDeath();
+	}
 	
 	EndAbility(Handle, ActorInfo, ActivationInfo, false, false);
 }
