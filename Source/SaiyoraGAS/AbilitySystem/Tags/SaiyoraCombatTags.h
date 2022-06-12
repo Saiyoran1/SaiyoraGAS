@@ -28,4 +28,9 @@ struct FSaiyoraCombatTags
 	static const FGameplayTag DeathImmunity;
 
 	static const FGameplayTag AbilityIgnoreDeath;
+
+	static const FGameplayTag KillCountType;
+	static const FGameplayTag PlayerKillCount;
+	static const FGameplayTag TrashKillCount;
+	static const FGameplayTag BossKillCount;
 };

@@ -114,4 +114,5 @@ struct TStructOpsTypeTraits<FKillingBlowArray> : public TStructOpsTypeTraitsBase
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthEvent, const FHealthEvent&, HealthEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnKillingBlow, const USaiyoraAbilityComponent*, Target);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLifeStatusChanged, const bool, bAlive);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRespawnStatusChanged, const bool, bCanRespawn);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, const float, PreviousHealth, const float, NewHealth);

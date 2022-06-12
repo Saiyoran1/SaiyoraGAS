@@ -24,8 +24,27 @@ void UDeathAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 	
 	if (ASaiyoraGameState* GameStateRef = Cast<ASaiyoraGameState>(GetWorld()->GetGameState()))
 	{
-		//TODO: Check tags to find out if player, boss, or trash.
-		GameStateRef->ReportPlayerDeath();
+		FGameplayTagContainer OwnerTags;
+		GetAbilitySystemComponentFromActorInfo()->GetOwnedGameplayTags(OwnerTags);
+		for (const FGameplayTag Tag : OwnerTags)
+		{
+			if (Tag.MatchesTag(FSaiyoraCombatTags::KillCountType) && !Tag.MatchesTagExact(FSaiyoraCombatTags::KillCountType))
+			{
+				if (Tag.MatchesTagExact(FSaiyoraCombatTags::PlayerKillCount))
+				{
+					GameStateRef->ReportPlayerDeath();
+				}
+				else if (Tag.MatchesTagExact(FSaiyoraCombatTags::TrashKillCount))
+				{
+					GameStateRef->ReportTrashDeath();
+				}
+				else if (Tag.MatchesTag(FSaiyoraCombatTags::BossKillCount))
+				{
+					GameStateRef->ReportBossDeath(Tag);
+				}
+				break;
+			}
+		}
 	}
 	
 	EndAbility(Handle, ActorInfo, ActivationInfo, false, false);

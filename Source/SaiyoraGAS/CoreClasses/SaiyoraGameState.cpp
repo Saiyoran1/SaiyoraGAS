@@ -2,8 +2,7 @@
 #include "MultiplayerSessionsSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
-
-const FGameplayTag ASaiyoraGameState::GenericBossTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Boss")), false);
+#include "SaiyoraGAS/AbilitySystem/Tags/SaiyoraCombatTags.h"
 
 #pragma region Boilerplate
 
@@ -226,7 +225,8 @@ void ASaiyoraGameState::ReportTrashDeath(const int32 CountToAdd)
 
 void ASaiyoraGameState::ReportBossDeath(const FGameplayTag BossTag)
 {
-	if (!HasAuthority() || DungeonPhase.DungeonState != EDungeonState::InProgress || !BossTag.IsValid() || !BossTag.MatchesTag(GenericBossTag) || BossTag.MatchesTagExact(GenericBossTag))
+	if (!HasAuthority() || DungeonPhase.DungeonState != EDungeonState::InProgress || !BossTag.IsValid() ||
+		!BossTag.MatchesTag(FSaiyoraCombatTags::BossKillCount) || BossTag.MatchesTagExact(FSaiyoraCombatTags::BossKillCount))
 	{
 		return;
 	}

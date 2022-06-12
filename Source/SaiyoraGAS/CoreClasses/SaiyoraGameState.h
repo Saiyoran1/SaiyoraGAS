@@ -11,7 +11,7 @@ struct FDungeonRequirements
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
 	int32 KillCountRequirement = 0;
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, meta = (Categories = "Boss"))
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, meta = (Categories = "KillCount.Boss"))
 	FGameplayTagContainer BossKillTags;
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
 	float TimeLimit = 0.0f;
@@ -183,8 +183,7 @@ private:
 	//Dungeon Requirements
 
 public:
-
-	static const FGameplayTag GenericBossTag;
+	
 	UFUNCTION(BlueprintPure)
 	FDungeonRequirements GetDungeonRequirements() const { return DungeonRequirements; }
 	UFUNCTION(BlueprintPure)

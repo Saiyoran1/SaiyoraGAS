@@ -17,3 +17,7 @@ const FGameplayTag FSaiyoraCombatTags::ModernPlane = FGameplayTag::RequestGamepl
 const FGameplayTag FSaiyoraCombatTags::Dead = FGameplayTag::RequestGameplayTag(TEXT("Status.Dead"), false);
 const FGameplayTag FSaiyoraCombatTags::DeathImmunity = FGameplayTag::RequestGameplayTag(TEXT("Status.DeathImmunity"), false);
 const FGameplayTag FSaiyoraCombatTags::AbilityIgnoreDeath = FGameplayTag::RequestGameplayTag(TEXT("Ability.Special.IgnoreDeath"), false);
+const FGameplayTag FSaiyoraCombatTags::KillCountType = FGameplayTag::RequestGameplayTag(TEXT("KillCount"), false);
+const FGameplayTag FSaiyoraCombatTags::PlayerKillCount = FGameplayTag::RequestGameplayTag(TEXT("KillCount.Player"), false);
+const FGameplayTag FSaiyoraCombatTags::TrashKillCount = FGameplayTag::RequestGameplayTag(TEXT("KillCount.Trash"), false);
+const FGameplayTag FSaiyoraCombatTags::BossKillCount = FGameplayTag::RequestGameplayTag(TEXT("KillCount.Boss"), false);

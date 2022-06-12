@@ -18,6 +18,7 @@ ASaiyoraPlayerCharacter::ASaiyoraPlayerCharacter(const FObjectInitializer& Objec
 	Camera->SetupAttachment(SpringArm);
 
 	AbilityComponent = CreateDefaultSubobject<USaiyoraAbilityComponent>(TEXT("AbilityComponent"));
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 }
 
 void ASaiyoraPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

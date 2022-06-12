@@ -20,8 +20,14 @@ public:
 	float GetHealth() const;
 	UFUNCTION(BlueprintPure, Category = "Health")
 	float GetMaxHealth() const;
+	UFUNCTION(BlueprintPure, Category = "Respawn")
+	bool CanRespawn() const { return bRespawnEnabled; }
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Respawn")
+	void RequestRespawn();
 	UPROPERTY(BlueprintAssignable)
 	FOnLifeStatusChanged OnLifeStatusChanged;
+	UPROPERTY(BlueprintAssignable)
+	FOnRespawnStatusChanged OnRespawnStatusChanged;
 	UPROPERTY(BlueprintAssignable)
 	FOnHealthChanged OnHealthChanged;
 	UPROPERTY(BlueprintAssignable)
@@ -60,7 +66,7 @@ private:
 
 	virtual void PostInitialize() override;
 
-	UPROPERTY(EditAnywhere, Category = "Health", meta = (AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, Category = "Health")
 	float BaseMaxHealth = 100.0f;
 	void HealthChangedCallback(const FOnAttributeChangeData& Data) { OnHealthChanged.Broadcast(Data.OldValue, Data.NewValue); }
 	void MaxHealthChangedCallback(const FOnAttributeChangeData& Data) { OnMaxHealthChanged.Broadcast(Data.OldValue, Data.NewValue); }
@@ -68,9 +74,20 @@ private:
 	UPROPERTY(ReplicatedUsing=OnRep_IsAlive)
 	bool bIsAlive = true;
 	UFUNCTION()
-	void OnRep_IsAlive(const bool bPreviouslyAlive);
+	void OnRep_IsAlive();
 	FGameplayAbilitySpecHandle DeathAbilityHandle;
 	void OnDeathTagChanged(const FGameplayTag CallbackTag, const int32 NewCount);
+
+	UPROPERTY(EditAnywhere, Category = "Respawn")
+	bool bCanRespawn = false;
+	UPROPERTY(EditAnywhere, Category = "Respawn")
+	float RespawnDelay = 1.0f;
+	UPROPERTY(ReplicatedUsing=OnRep_RespawnEnabled)
+	bool bRespawnEnabled = false;
+	UFUNCTION()
+	void OnRep_RespawnEnabled();
+	void EnableRespawn();
+	FTimerHandle RespawnHandle;
 	
 	UPROPERTY(Replicated)
 	FHealthEventArray HealthEventsTaken;
@@ -78,4 +95,7 @@ private:
 	FHealthEventArray HealthEventsDone;
 	UPROPERTY(Replicated)
 	FKillingBlowArray KillingBlows;
+
+	UPROPERTY(EditAnywhere, Category = "Kill Count", meta = (AllowPrivateAccess, Categories = "KillCount"))
+	FGameplayTag KillCountTag;
 };

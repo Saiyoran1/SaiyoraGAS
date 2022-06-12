@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
 #include "GameFramework/Character.h"
+#include "SaiyoraGAS/AbilitySystem/Components/HealthComponent.h"
 #include "SaiyoraGAS/AbilitySystem/Components/SaiyoraAbilityComponent.h"
 #include "SaiyoraPlayerCharacter.generated.h"
 
@@ -44,6 +45,8 @@ private:
 	UCameraComponent* Camera;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	USaiyoraAbilityComponent* AbilityComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	UHealthComponent* HealthComponent;
 	
 	UFUNCTION()
 	void MoveCharacterForward(float Value);

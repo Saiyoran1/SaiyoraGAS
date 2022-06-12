@@ -23,6 +23,7 @@ void UHealthComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(UHealthComponent, HealthEventsTaken);
 	DOREPLIFETIME(UHealthComponent, HealthEventsDone);
 	DOREPLIFETIME(UHealthComponent, KillingBlows);
+	DOREPLIFETIME(UHealthComponent, bRespawnEnabled);
 }
 
 float UHealthComponent::GetHealth() const
@@ -33,6 +34,11 @@ float UHealthComponent::GetHealth() const
 float UHealthComponent::GetMaxHealth() const
 {
 	return GetAbilityComponent() ? GetAbilityComponent()->GetNumericAttribute(UHealthAttributeSet::GetMaxHealthAttribute()) : 0.0f;
+}
+
+void UHealthComponent::RequestRespawn()
+{
+	//TODO: Respawn implementation?
 }
 
 void UHealthComponent::PostInitialize()
@@ -58,14 +64,12 @@ void UHealthComponent::PostInitialize()
 	OnMaxHealthChanged.Broadcast(0.0f, GetAbilityComponent()->GetNumericAttribute(UHealthAttributeSet::GetMaxHealthAttribute()));
 	OnHealthChanged.Broadcast(0.0f, GetAbilityComponent()->GetNumericAttribute(UHealthAttributeSet::GetHealthAttribute()));
 	GetAbilityComponent()->RegisterGameplayTagEvent(FSaiyoraCombatTags::Dead, EGameplayTagEventType::AnyCountChange).AddUObject(this, &UHealthComponent::OnDeathTagChanged);
+	GetAbilityComponent()->SetLooseGameplayTagCount(KillCountTag, 1);
 }
 
-void UHealthComponent::OnRep_IsAlive(const bool bPreviouslyAlive)
+void UHealthComponent::OnRep_IsAlive()
 {
-	if (bPreviouslyAlive != bIsAlive)
-	{
-		OnLifeStatusChanged.Broadcast(bIsAlive);
-	}
+	OnLifeStatusChanged.Broadcast(bIsAlive);
 }
 
 void UHealthComponent::OnDeathTagChanged(const FGameplayTag CallbackTag, const int32 NewCount)
@@ -83,6 +87,17 @@ void UHealthComponent::OnDeathTagChanged(const FGameplayTag CallbackTag, const i
 			OnLifeStatusChanged.Broadcast(bIsAlive);
 		}
 	}
+}
+
+void UHealthComponent::OnRep_RespawnEnabled()
+{
+	OnRespawnStatusChanged.Broadcast(bRespawnEnabled);
+}
+
+void UHealthComponent::EnableRespawn()
+{
+	bRespawnEnabled = true;
+	OnRep_RespawnEnabled();
 }
 
 void UHealthComponent::AuthNotifyHealthEventTaken(const FHealthEvent& NewEvent)
@@ -127,11 +142,23 @@ void UHealthComponent::AuthNotifyHealthEventTaken(const FHealthEvent& NewEvent)
 			{
 				AttackerHealthComp->AuthNotifyKillingBlowEvent(GetAbilityComponent());
 			}
+			if (bCanRespawn)
+			{
+				if (RespawnDelay <= 0.0f)
+				{
+					EnableRespawn();
+				}
+				else
+				{
+					FTimerDelegate RespawnDel;
+					RespawnDel.BindUObject(this, &UHealthComponent::EnableRespawn);
+					GetWorld()->GetTimerManager().SetTimer(RespawnHandle, RespawnDel, RespawnDelay, false);
+				}
+			}
 		}
 		else
 		{
-			//TODO: Check if this actually works correctly.
-			GetAbilityComponent()->ApplyModToAttribute(UHealthAttributeSet::GetHealthAttribute(), EGameplayModOp::Additive, 1.0f);
+			GetAbilityComponent()->ApplyModToAttribute(UHealthAttributeSet::GetHealthAttribute(), EGameplayModOp::Override, 1.0f);
 		}
 	}
 }
