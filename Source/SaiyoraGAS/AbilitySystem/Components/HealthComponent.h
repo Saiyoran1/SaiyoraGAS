@@ -20,10 +20,14 @@ public:
 	float GetHealth() const;
 	UFUNCTION(BlueprintPure, Category = "Health")
 	float GetMaxHealth() const;
+	UFUNCTION(BlueprintPure, Category = "Health")
+	float GetAbsorb() const;
 	UFUNCTION(BlueprintPure, Category = "Respawn")
 	bool CanRespawn() const { return bRespawnEnabled; }
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Respawn")
 	void RequestRespawn();
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Respawn")
+	void SetNewRespawnLocation(const FVector& NewLocation);
 	UPROPERTY(BlueprintAssignable)
 	FOnLifeStatusChanged OnLifeStatusChanged;
 	UPROPERTY(BlueprintAssignable)
@@ -32,6 +36,8 @@ public:
 	FOnHealthChanged OnHealthChanged;
 	UPROPERTY(BlueprintAssignable)
 	FOnHealthChanged OnMaxHealthChanged;
+	UPROPERTY(BlueprintAssignable)
+	FOnAbsorbChanged OnAbsorbChanged;
 	UPROPERTY(BlueprintAssignable)
 	FOnHealthEvent OnDamageTaken;
 	UPROPERTY(BlueprintAssignable)
@@ -70,6 +76,7 @@ private:
 	float BaseMaxHealth = 100.0f;
 	void HealthChangedCallback(const FOnAttributeChangeData& Data) { OnHealthChanged.Broadcast(Data.OldValue, Data.NewValue); }
 	void MaxHealthChangedCallback(const FOnAttributeChangeData& Data) { OnMaxHealthChanged.Broadcast(Data.OldValue, Data.NewValue); }
+	void AbsorbChangedCallback(const FOnAttributeChangeData& Data) { OnAbsorbChanged.Broadcast(Data.OldValue, Data.NewValue); }
 	
 	UPROPERTY(ReplicatedUsing=OnRep_IsAlive)
 	bool bIsAlive = true;
@@ -82,12 +89,15 @@ private:
 	bool bCanRespawn = false;
 	UPROPERTY(EditAnywhere, Category = "Respawn")
 	float RespawnDelay = 1.0f;
+	UPROPERTY(EditAnywhere, Category = "Respawn")
+	bool bRespawnInPlace = true;
 	UPROPERTY(ReplicatedUsing=OnRep_RespawnEnabled)
 	bool bRespawnEnabled = false;
 	UFUNCTION()
 	void OnRep_RespawnEnabled();
 	void EnableRespawn();
 	FTimerHandle RespawnHandle;
+	FVector RespawnLocation;
 	
 	UPROPERTY(Replicated)
 	FHealthEventArray HealthEventsTaken;

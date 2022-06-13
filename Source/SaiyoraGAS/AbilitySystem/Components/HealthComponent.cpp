@@ -4,6 +4,7 @@
 #include "SaiyoraGAS/AbilitySystem/Abilities/CoreAbilities/DeathAbility.h"
 #include "SaiyoraGAS/AbilitySystem/Attributes/DamageAttributeSet.h"
 #include "SaiyoraGAS/AbilitySystem/Attributes/HealthAttributeSet.h"
+#include "SaiyoraGAS/AbilitySystem/Effects/DeathEffect.h"
 #include "SaiyoraGAS/AbilitySystem/Tags/SaiyoraCombatTags.h"
 
 const float UHealthComponent::HEALTHEVENTNOTIFYWINDOW = 1.0f;
@@ -36,9 +37,9 @@ float UHealthComponent::GetMaxHealth() const
 	return GetAbilityComponent() ? GetAbilityComponent()->GetNumericAttribute(UHealthAttributeSet::GetMaxHealthAttribute()) : 0.0f;
 }
 
-void UHealthComponent::RequestRespawn()
+float UHealthComponent::GetAbsorb() const
 {
-	//TODO: Respawn implementation?
+	return GetAbilityComponent() ? GetAbilityComponent()->GetNumericAttribute(UHealthAttributeSet::GetAbsorbAttribute()) : 0.0f;
 }
 
 void UHealthComponent::PostInitialize()
@@ -61,8 +62,10 @@ void UHealthComponent::PostInitialize()
 	KillingBlows.OwningHealthComp = this;
 	GetAbilityComponent()->GetGameplayAttributeValueChangeDelegate(UHealthAttributeSet::GetMaxHealthAttribute()).AddUObject(this, &UHealthComponent::MaxHealthChangedCallback);
 	GetAbilityComponent()->GetGameplayAttributeValueChangeDelegate(UHealthAttributeSet::GetHealthAttribute()).AddUObject(this, &UHealthComponent::HealthChangedCallback);
+	GetAbilityComponent()->GetGameplayAttributeValueChangeDelegate(UHealthAttributeSet::GetAbsorbAttribute()).AddUObject(this, &UHealthComponent::AbsorbChangedCallback);
 	OnMaxHealthChanged.Broadcast(0.0f, GetAbilityComponent()->GetNumericAttribute(UHealthAttributeSet::GetMaxHealthAttribute()));
 	OnHealthChanged.Broadcast(0.0f, GetAbilityComponent()->GetNumericAttribute(UHealthAttributeSet::GetHealthAttribute()));
+	OnAbsorbChanged.Broadcast(0.0f, GetAbilityComponent()->GetNumericAttribute(UHealthAttributeSet::GetAbsorbAttribute()));
 	GetAbilityComponent()->RegisterGameplayTagEvent(FSaiyoraCombatTags::Dead, EGameplayTagEventType::AnyCountChange).AddUObject(this, &UHealthComponent::OnDeathTagChanged);
 	GetAbilityComponent()->SetLooseGameplayTagCount(KillCountTag, 1);
 }
@@ -87,17 +90,6 @@ void UHealthComponent::OnDeathTagChanged(const FGameplayTag CallbackTag, const i
 			OnLifeStatusChanged.Broadcast(bIsAlive);
 		}
 	}
-}
-
-void UHealthComponent::OnRep_RespawnEnabled()
-{
-	OnRespawnStatusChanged.Broadcast(bRespawnEnabled);
-}
-
-void UHealthComponent::EnableRespawn()
-{
-	bRespawnEnabled = true;
-	OnRep_RespawnEnabled();
 }
 
 void UHealthComponent::AuthNotifyHealthEventTaken(const FHealthEvent& NewEvent)
@@ -185,6 +177,42 @@ void UHealthComponent::ReplicatedNotifyHealthEventTaken(const FHealthEvent& NewE
 		default :
 			break;
 	}
+}
+
+void UHealthComponent::EnableRespawn()
+{
+	bRespawnEnabled = true;
+	OnRep_RespawnEnabled();
+}
+
+void UHealthComponent::OnRep_RespawnEnabled()
+{
+	OnRespawnStatusChanged.Broadcast(bRespawnEnabled);
+}
+
+void UHealthComponent::SetNewRespawnLocation(const FVector& NewLocation)
+{
+	if (!GetOwner()->HasAuthority() || bRespawnInPlace)
+	{
+		return;
+	}
+	RespawnLocation = NewLocation;
+}
+
+void UHealthComponent::RequestRespawn()
+{
+	if (!bRespawnEnabled)
+	{
+		return;
+	}
+	if (!bRespawnInPlace)
+	{
+		GetOwner()->SetActorLocation(RespawnLocation, false, nullptr, ETeleportType::TeleportPhysics);
+	}
+	GetAbilityComponent()->ApplyModToAttribute(UHealthAttributeSet::GetHealthAttribute(), EGameplayModOp::Override, GetMaxHealth());
+	GetAbilityComponent()->RemoveActiveGameplayEffectBySourceEffect(UDeathEffect::StaticClass(), GetAbilityComponent());
+	bRespawnEnabled = false;
+	OnRep_RespawnEnabled();
 }
 
 void UHealthComponent::AuthNotifyHealthEventDone(const FHealthEvent& NewEvent)
