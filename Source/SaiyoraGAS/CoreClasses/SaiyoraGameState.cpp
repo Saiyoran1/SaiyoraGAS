@@ -49,6 +49,7 @@ void ASaiyoraGameState::InitPlayer(ASaiyoraPlayerCharacter* Player)
 		return;
 	}
 	GroupPlayers.Add(Player);
+	Player->GetHealthComponent()->SetNewRespawnLocation(PlayerRespawnPoint);
 	OnPlayerAdded.Broadcast(Player);
 }
 
@@ -338,3 +339,19 @@ void ASaiyoraGameState::OnRep_DungeonProgress(const FDungeonProgress& PreviousPr
 }
 
 #pragma endregion
+#pragma region Respawning
+
+void ASaiyoraGameState::UpdatePlayerRespawnPoint(const FVector& NewLocation)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	PlayerRespawnPoint = NewLocation;
+	for (ASaiyoraPlayerCharacter* Player : GroupPlayers)
+	{
+		Player->GetHealthComponent()->SetNewRespawnLocation(PlayerRespawnPoint);
+	}
+}
+
+#pragma endregion 

@@ -26,6 +26,8 @@ public:
 	class UCameraComponent* GetCamera() { return Camera; }
 	UFUNCTION(BlueprintPure, Category = "Abilities")
 	USaiyoraAbilityComponent* GetAbilityComponent() { return AbilityComponent; }
+	UFUNCTION(BlueprintPure, Category = "Health")
+	UHealthComponent* GetHealthComponent() { return HealthComponent; }
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilityComponent; }
 

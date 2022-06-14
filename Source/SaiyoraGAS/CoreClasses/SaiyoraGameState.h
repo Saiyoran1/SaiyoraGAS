@@ -161,6 +161,8 @@ public:
 	float GetElapsedDungeonTime() const;
 	UPROPERTY(BlueprintAssignable)
 	FOnDungeonPhaseChanged OnDungeonPhaseChanged;
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
+	void UpdatePlayerRespawnPoint(const FVector& NewLocation);
 
 protected:
 
@@ -179,6 +181,8 @@ private:
 	FTimerHandle CountdownHandle;
 	void EndCountdown();
 	void MoveToCompletedState();
+
+	FVector PlayerRespawnPoint;
 
 	//Dungeon Requirements
 

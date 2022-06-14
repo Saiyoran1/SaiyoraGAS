@@ -61,7 +61,6 @@ public:
 
 	void AuthNotifyKillingBlowEvent(USaiyoraAbilityComponent* Target);
 	void ReplicatedNotifyKillingBlowEvent(USaiyoraAbilityComponent* Target, const float EventTime);
-	
 
 private:
 
